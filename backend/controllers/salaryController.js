@@ -22,7 +22,8 @@ exports.getSalaryInfo = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const breakdown = await calculateSalary(userId);
+    const { month, year } = req.query;
+    const breakdown = await calculateSalary(userId, month, year);
     res.json(breakdown);
   } catch (error) {
     console.error('Get Salary Error:', error);

@@ -11,14 +11,15 @@
 
 const express = require('express');
 const router = express.Router();
-const { checkIn, checkOut, getUserLogs, getCurrentStatus, getMyLogs } = require('../controllers/attendanceController');
+const { checkIn, checkOut, getUserLogs, getCurrentStatus, getAttendanceSummary, getAllLogsByDate } = require('../controllers/attendanceController');
 const { protect } = require('../middleware/authMiddleware');
 const { requireCheckIn } = require('../middleware/attendanceMiddleware');
 
 router.post('/check-in', protect, checkIn);
 router.post('/check-out', protect, checkOut);
 router.get('/status', protect, getCurrentStatus);
-router.get('/logs/me', protect, getMyLogs);
+router.get('/summary', protect, getAttendanceSummary);
+router.get('/all', protect, getAllLogsByDate);
 router.get('/logs/:userId', protect, requireCheckIn, getUserLogs);
 
 module.exports = router;

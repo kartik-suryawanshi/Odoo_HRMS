@@ -131,20 +131,90 @@ exports.getCurrentStatus = async (req, res) => {
   }
 };
 
-// Get Current User's Own Logs
-exports.getMyLogs = async (req, res) => {
+// Get All Logs for a Specific Date (Admin/HR/Payroll view)
+exports.getAllLogsByDate = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const { date } = req.query; // Expects YYYY-MM-DD
+    const targetDate = date || 'CURRENT_DATE';
+
     const query = `
-      SELECT id, check_in_time, check_out_time, total_hours 
-      FROM attendance_logs
-      WHERE user_id = $1
-      ORDER BY check_in_time DESC
+      SELECT 
+        u.id as user_id, p.full_name as name, u.role,
+        al.check_in_time, al.check_out_time, al.total_hours
+      FROM users u
+      JOIN user_profiles p ON u.id = p.user_id
+      LEFT JOIN attendance_logs al ON u.id = al.user_id AND DATE(al.check_in_time) = $1
+      WHERE u.role != 'Admin'
+      ORDER BY p.full_name ASC
     `;
-    const logs = await pool.query(query, [userId]);
+    const logs = await pool.query(query, [targetDate === 'CURRENT_DATE' ? new Date().toISOString().split('T')[0] : targetDate]);
+
     res.json(logs.rows);
   } catch (error) {
-    console.error('Get My Logs Error:', error);
-    res.status(500).json({ message: 'Server Error getting personal logs' });
+    console.error('Get All Logs By Date Error:', error);
+    res.status(500).json({ message: 'Server Error getting daily logs' });
+  }
+};
+
+// Get Attendance Summary for Employee (Month-wise)
+exports.getAttendanceSummary = async (req, res) => {
+  try {
+    const { userId: targetUserId, month, year } = req.query; // Expects userId, MM and YYYY
+    
+    // Determine whose data to fetch
+    let userId = req.user.id;
+    if (targetUserId && (req.user.role === 'Admin' || req.user.role === 'HR Officer' || req.user.role === 'Payroll Officer')) {
+      userId = parseInt(targetUserId);
+    }
+
+    const targetMonth = month || (new Date().getMonth() + 1);
+    const targetYear = year || new Date().getFullYear();
+
+    // 1. Get detailed logs for the month
+    const logsQuery = `
+      SELECT id, check_in_time, check_out_time, total_hours 
+      FROM attendance_logs
+      WHERE user_id = $1 AND EXTRACT(MONTH FROM check_in_time) = $2 AND EXTRACT(YEAR FROM check_in_time) = $3
+      ORDER BY check_in_time DESC
+    `;
+    const logsRes = await pool.query(logsQuery, [userId, targetMonth, targetYear]);
+
+    // 2. Calculate summary stats
+    const today = new Date();
+    const isCurrentMonth = today.getMonth() + 1 === parseInt(targetMonth) && today.getFullYear() === parseInt(targetYear);
+
+    const uniqueDaysPresent = new Set(logsRes.rows.map(l => new Date(l.check_in_time).toDateString())).size;
+    
+    // Total working days in month (assuming Mon-Fri)
+    const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
+    let totalWorkingDays = 0;
+    let workingDaysToDate = 0;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(targetYear, targetMonth - 1, d);
+      const isWorking = date.getDay() !== 0 && date.getDay() !== 6;
+      if (isWorking) {
+        totalWorkingDays++;
+        if (isCurrentMonth && d <= today.getDate()) {
+          workingDaysToDate++;
+        }
+      }
+    }
+
+    // Absences only count for days that have already passed
+    const absences = isCurrentMonth ? Math.max(0, workingDaysToDate - uniqueDaysPresent) : Math.max(0, totalWorkingDays - uniqueDaysPresent);
+
+    res.json({
+      logs: logsRes.rows,
+      summary: {
+        presentCount: uniqueDaysPresent,
+        leavesCount: absences,
+        totalWorkingDays: totalWorkingDays,
+        workingDaysToDate: workingDaysToDate // Optional: useful for UI
+      }
+    });
+  } catch (error) {
+    console.error('Get Attendance Summary Error:', error);
+    res.status(500).json({ message: 'Server Error getting attendance summary' });
   }
 };
