@@ -39,4 +39,13 @@ const adminOnly = (req, res, next) => {
   }
 };
 
-module.exports = { protect, adminOnly };
+const managementOnly = (req, res, next) => {
+  const allowed = ['Admin', 'HR Officer', 'Payroll Officer'];
+  if (req.user && allowed.includes(req.user.role)) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Management access required' });
+  }
+};
+
+module.exports = { protect, adminOnly, managementOnly };

@@ -45,6 +45,37 @@ exports.calculateSalary = async (userId, month, year) => {
     const attRes = await pool.query(attendanceQuery, [userId, targetMonth, targetYear]);
     const presentDays = parseInt(attRes.rows[0].present_days, 10);
 
+    // Fetch approved leaves for the month
+    const leavesQuery = `
+      SELECT start_date, end_date, leave_type
+      FROM leave_requests
+      WHERE user_id = $1 AND status = 'Approved' 
+      AND (
+        (EXTRACT(MONTH FROM start_date) = $2 AND EXTRACT(YEAR FROM start_date) = $3) OR
+        (EXTRACT(MONTH FROM end_date) = $2 AND EXTRACT(YEAR FROM end_date) = $3)
+      )
+    `;
+    const leavesRes = await pool.query(leavesQuery, [userId, targetMonth, targetYear]);
+    
+    // Create a set of "Paid Leave Dates"
+    const paidLeaveDates = new Set();
+    leavesRes.rows.forEach(l => {
+      if (l.leave_type === 'Unpaid Leave') return; // Skip unpaid
+      let curr = new Date(l.start_date);
+      const end = new Date(l.end_date);
+      while (curr <= end) {
+        if (curr.getMonth() + 1 === targetMonth && curr.getFullYear() === targetYear) {
+          const day = curr.getDay();
+          if (day !== 0 && day !== 6) { // Only count working days as leaves
+            paidLeaveDates.add(curr.toDateString());
+          }
+        }
+        curr.setDate(curr.getDate() + 1);
+      }
+    });
+
+    const approvedPaidLeaveDays = paidLeaveDates.size;
+
     // Calculate working days
     const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
     let totalWorkingDays = 0;
@@ -62,12 +93,12 @@ exports.calculateSalary = async (userId, month, year) => {
       }
     }
 
-    let payableDays = presentDays;
+    let payableDays = presentDays + approvedPaidLeaveDays;
     if (isFutureMonth) {
       payableDays = totalWorkingDays; // Assume full pay for future
     } else if (isCurrentMonth) {
-      // Absences = (Working days passed so far) - (Actual days present)
-      const absencesSoFar = Math.max(0, workingDaysToDate - presentDays);
+      // Absences = (Working days passed so far) - (Actual days present + Approved Paid Leaves)
+      const absencesSoFar = Math.max(0, workingDaysToDate - (presentDays + approvedPaidLeaveDays));
       payableDays = totalWorkingDays - absencesSoFar;
     }
 
