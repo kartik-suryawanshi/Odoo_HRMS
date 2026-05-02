@@ -1,3 +1,14 @@
+/**
+ * File: frontend/src/pages/Dashboard.jsx
+ * Purpose: Renders the main dashboard for employees and admins.
+ * What it does: Shows employee grid, attendance logic, and profile management.
+ * Data Fetching: Fetches from /api/employees and /api/attendance.
+ * Data Sending: Sends check-in/out POST requests.
+ * External Dependencies: react, react-router-dom, axios, react-hot-toast.
+ * Environment Variables Required: N/A.
+ * Related Files: backend/controllers/employeeController.js, backend/controllers/attendanceController.js
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -10,7 +21,10 @@ const Dashboard = () => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
+  const [checkedInTime, setCheckedInTime] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [employeeLogs, setEmployeeLogs] = useState([]);
+  const [needsCheckIn, setNeedsCheckIn] = useState(false);
   
   const [employees, setEmployees] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -19,7 +33,44 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchEmployees();
+    fetchCurrentStatus();
   }, []);
+
+  useEffect(() => {
+    if (selectedEmployee) {
+      fetchEmployeeLogs(selectedEmployee.id);
+    }
+  }, [selectedEmployee]);
+
+  const fetchCurrentStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:5000/api/attendance/status', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.status === 'checked_in') {
+        setCheckedIn(true);
+        setCheckedInTime(res.data.log.check_in_time);
+      } else {
+        setCheckedIn(false);
+        setCheckedInTime(null);
+      }
+    } catch (err) {
+      console.error('Failed to fetch status', err);
+    }
+  };
+
+  const fetchEmployeeLogs = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`http://localhost:5000/api/attendance/logs/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmployeeLogs(res.data);
+    } catch (err) {
+      console.error('Failed to fetch employee logs', err);
+    }
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -28,7 +79,11 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmployees(res.data);
+      setNeedsCheckIn(false);
     } catch (err) {
+      if (err.response?.data?.code === 'NOT_CHECKED_IN') {
+        setNeedsCheckIn(true);
+      }
       console.error('Failed to fetch employees', err);
     }
   };
@@ -59,14 +114,34 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  const handleCheckIn = () => {
-    setCheckedIn(true);
-    toast.success('Checked IN successfully!');
+  const handleCheckIn = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post('http://localhost:5000/api/attendance/check-in', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCheckedIn(true);
+      setCheckedInTime(res.data.log.check_in_time);
+      toast.success('Checked IN successfully!');
+      fetchEmployees();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to check in');
+    }
   };
 
-  const handleCheckOut = () => {
-    setCheckedIn(false);
-    toast.success('Checked OUT successfully!');
+  const handleCheckOut = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:5000/api/attendance/check-out', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCheckedIn(false);
+      setCheckedInTime(null);
+      toast.success('Checked OUT successfully!');
+      fetchEmployees();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to check out');
+    }
   };
 
   const getStatusIcon = (status) => {
@@ -75,6 +150,21 @@ const Dashboard = () => {
       case 'absent': return <span className="status-indicator status-yellow" title="Absent"></span>;
       case 'leave': return <span className="status-indicator status-leave" title="On Leave">✈️</span>;
       default: return null;
+    }
+  };
+
+  const formatHours = (decimalHours) => {
+    if (!decimalHours) return '-';
+    const totalMinutes = Math.round(parseFloat(decimalHours) * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    
+    if (h === 0) {
+      return `${m}m`;
+    } else if (m === 0) {
+      return `${h}h`;
+    } else {
+      return `${h}h ${m}m`;
     }
   };
 
@@ -128,7 +218,7 @@ const Dashboard = () => {
                       Check IN →
                     </button>
                     <span style={{ fontSize: '0.85rem', color: '#666' }}>
-                      {checkedIn ? 'Since 09:00 AM' : 'Not checked in'}
+                      {checkedIn && checkedInTime ? `Since ${new Date(checkedInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'Not checked in'}
                     </span>
                     <button className="btn-outline" onClick={() => { handleCheckOut(); setShowStatusDropdown(false); }} disabled={!checkedIn}>
                       Check Out →
@@ -163,7 +253,21 @@ const Dashboard = () => {
         </div>
 
         {/* Dashboard Content (Employee Grid) */}
-        <div className="dashboard-content">
+        <div className="dashboard-content" style={{ position: 'relative' }}>
+          {needsCheckIn && (
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+              background: 'rgba(255,255,255,0.8)', zIndex: 10, 
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              backdropFilter: 'blur(4px)'
+            }}>
+              <div style={{ background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                <h3 style={{ color: '#dc3545', marginBottom: '10px' }}>Access Restricted</h3>
+                <p>You must Check IN to view and manage employee records.</p>
+                <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '10px' }}>Click your profile avatar in the top right to Check IN.</p>
+              </div>
+            </div>
+          )}
           <div className="employee-grid">
             {employees.length === 0 ? (
               <p style={{ textAlign: 'center', width: '100%', gridColumn: '1 / -1', color: '#666', marginTop: '40px' }}>
@@ -177,7 +281,7 @@ const Dashboard = () => {
                   onClick={() => setSelectedEmployee(emp)}
                 >
                   <div className="card-status">
-                    {getStatusIcon('present')} {/* Mock status for now */}
+                    {getStatusIcon(emp.status)}
                   </div>
                   <div className="card-avatar">
                     <svg viewBox="0 0 24 24">
@@ -218,6 +322,36 @@ const Dashboard = () => {
               <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem' }}><strong>Phone:</strong> {selectedEmployee.phone || 'N/A'}</p>
               <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem' }}><strong>Login ID:</strong> {selectedEmployee.login_id}</p>
               <p style={{ margin: 0, fontSize: '0.9rem' }}><strong>Join Year:</strong> {selectedEmployee.year_of_joining}</p>
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <h4 style={{ marginBottom: '10px', fontSize: '1rem' }}>Attendance Logs</h4>
+              <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
+                {employeeLogs.length === 0 ? (
+                  <p style={{ padding: '10px', fontSize: '0.85rem', color: '#666', margin: 0 }}>No attendance logs found.</p>
+                ) : (
+                  <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
+                    <thead style={{ background: '#f0f0f0', position: 'sticky', top: 0 }}>
+                      <tr>
+                        <th style={{ padding: '8px', textAlign: 'left' }}>Date</th>
+                        <th style={{ padding: '8px', textAlign: 'left' }}>Check In</th>
+                        <th style={{ padding: '8px', textAlign: 'left' }}>Check Out</th>
+                        <th style={{ padding: '8px', textAlign: 'left' }}>Hours</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {employeeLogs.map(log => (
+                        <tr key={log.id} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '8px' }}>{new Date(log.check_in_time).toLocaleDateString()}</td>
+                          <td style={{ padding: '8px' }}>{new Date(log.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                          <td style={{ padding: '8px' }}>{log.check_out_time ? new Date(log.check_out_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}</td>
+                          <td style={{ padding: '8px' }}>{formatHours(log.total_hours)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
             
             <div style={{ marginTop: '20px', textAlign: 'right' }}>

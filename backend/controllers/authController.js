@@ -31,7 +31,7 @@ const generateLoginId = async (companyName, fullName, yearOfJoining, client) => 
   const nameParts = fullName.trim().split(' ');
   const firstNamePrefix = nameParts[0] ? nameParts[0].substring(0, 2).toUpperCase() : 'XX';
   const lastNamePrefix = nameParts.length > 1 ? nameParts[nameParts.length - 1].substring(0, 2).toUpperCase() : 'XX';
-  
+
   const result = await client.query('SELECT COUNT(*) FROM user_profiles WHERE year_of_joining = $1', [yearOfJoining]);
   const count = parseInt(result.rows[0].count, 10);
   const serialNumber = count + 1;
@@ -75,7 +75,7 @@ exports.register = async (req, res) => {
       // --- Get file extension from mimeType ---
       const extMap = {
         'image/jpeg': '.jpg',
-        'image/png':  '.png',
+        'image/png': '.png',
         'image/webp': '.webp'
       };
       const ext = extMap[logoMimeType];
@@ -109,7 +109,7 @@ exports.register = async (req, res) => {
     // 2. Hash Password and Insert User
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
-    
+
     const userResult = await client.query(
       'INSERT INTO users (email, password_hash, role, must_change_password) VALUES ($1, $2, $3, $4) RETURNING id, role',
       [email, passwordHash, 'Admin', false]
@@ -165,7 +165,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { identifier, password } = req.body; 
+    const { identifier, password } = req.body;
 
     // Find user using join
     const query = `

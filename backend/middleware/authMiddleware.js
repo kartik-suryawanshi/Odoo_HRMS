@@ -1,3 +1,14 @@
+/**
+ * File: backend/middleware/authMiddleware.js
+ * Purpose: Middleware for verifying JSON Web Tokens.
+ * What it does: Extracts and verifies JWT from the Authorization header.
+ * Data Fetching: N/A.
+ * Data Sending: Returns 401 Unauthorized if invalid.
+ * External Dependencies: jsonwebtoken.
+ * Environment Variables Required: JWT_SECRET.
+ * Related Files: backend/routes/authRoutes.js
+ */
+
 const jwt = require('jsonwebtoken');
 
 const protect = (req, res, next) => {

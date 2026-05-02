@@ -1,3 +1,14 @@
+/**
+ * File: backend/controllers/employeeController.js
+ * Purpose: Handles fetching and creating employees.
+ * What it does: Manages user creation, auto-generates credentials, and fetches list of users.
+ * Data Fetching: Queries user and attendance tables.
+ * Data Sending: Sends user data to frontend.
+ * External Dependencies: bcrypt, crypto.
+ * Environment Variables Required: N/A.
+ * Related Files: backend/routes/employeeRoutes.js
+ */
+
 const pool = require('../config/db');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
@@ -27,16 +38,30 @@ exports.getEmployees = async (req, res) => {
     if (adminProfile.rows.length === 0) return res.status(404).json({ message: 'Admin profile not found' });
     const companyId = adminProfile.rows[0].company_id;
 
-    // Fetch employees for this company
+    // Fetch employees for this company, using DISTINCT ON to get only the latest attendance log for today
     const query = `
-      SELECT p.id, p.full_name as name, p.login_id, u.email, p.phone, p.year_of_joining
+      SELECT DISTINCT ON (p.user_id)
+        p.user_id as id, p.full_name as name, p.login_id, u.email, p.phone, p.year_of_joining,
+        al.check_in_time, al.check_out_time
       FROM user_profiles p
       JOIN users u ON p.user_id = u.id
-      WHERE p.company_id = $1 AND u.role = 'Employee'
+      LEFT JOIN attendance_logs al ON p.user_id = al.user_id AND DATE(al.check_in_time) = CURRENT_DATE
+      WHERE p.company_id = $1 AND p.user_id != $2 AND u.role = 'Employee'
+      ORDER BY p.user_id, al.check_in_time DESC
     `;
-    const employees = await pool.query(query, [companyId]);
+    const employeesResult = await pool.query(query, [companyId, adminId]);
 
-    res.json(employees.rows);
+    const employees = employeesResult.rows.map(emp => {
+      let status = 'absent';
+      if (emp.check_in_time && !emp.check_out_time) {
+        status = 'present';
+      } else if (emp.check_in_time && emp.check_out_time) {
+        status = 'absent';
+      }
+      return { ...emp, status };
+    });
+
+    res.json(employees);
   } catch (error) {
     console.error('Error fetching employees:', error);
     res.status(500).json({ message: 'Server Error' });
