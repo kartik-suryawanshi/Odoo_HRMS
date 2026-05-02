@@ -36,8 +36,14 @@ const SignIn = () => {
       // Store token (in production, use secure storage/cookies)
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
-      toast.success('Login Successful!');
-      navigate('/dashboard'); 
+      
+      if (response.data.mustChangePassword) {
+        toast('Please change your default password', { icon: '⚠️' });
+        navigate('/change-password');
+      } else {
+        toast.success('Login Successful!');
+        navigate('/dashboard'); 
+      }
     } catch (err) {
       setError('');
       toast.error(err.response?.data?.message || 'Something went wrong during login');

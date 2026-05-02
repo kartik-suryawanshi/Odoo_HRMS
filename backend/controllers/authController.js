@@ -15,24 +15,15 @@
 const pool = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const cloudinary = require('../config/cloudinary');
-const stream = require('stream');
+const fs = require('fs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const SMTPClient = require('../utils/smtpClient');
 
-// Helper to upload buffer to Cloudinary
-const uploadToCloudinary = (buffer) => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: 'empay_logos' },
-      (error, result) => {
-        if (result) resolve(result);
-        else reject(error);
-      }
-    );
-    const readStream = new stream.PassThrough();
-    readStream.end(buffer);
-    readStream.pipe(uploadStream);
-  });
-};
+const UPLOAD_DIR = path.join(__dirname, '../uploads/avatars');
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
 
 // Generate Login ID logic
 const generateLoginId = async (companyName, fullName, yearOfJoining, client) => {
@@ -53,8 +44,7 @@ const generateLoginId = async (companyName, fullName, yearOfJoining, client) => 
 exports.register = async (req, res) => {
   const client = await pool.connect();
   try {
-    const { companyName, name, email, phone, password } = req.body;
-    const logoFile = req.file;
+    const { companyName, name, email, phone, password, logoBase64, logoMimeType, logoFileName } = req.body;
 
     // Check if user exists
     const userExist = await client.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -62,11 +52,46 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
 
-    // Upload Logo to Cloudinary if provided
     let logoUrl = null;
-    if (logoFile) {
-      const uploadResult = await uploadToCloudinary(logoFile.buffer);
-      logoUrl = uploadResult.secure_url;
+    if (logoBase64 && logoMimeType && logoFileName) {
+      // --- Validate mime type ---
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(logoMimeType)) {
+        return res.status(400).json({ message: 'Only JPEG, PNG, WEBP allowed for logo' });
+      }
+
+      // --- Validate base64 string ---
+      const base64Pattern = /^[A-Za-z0-9+/]+={0,2}$/;
+      if (!base64Pattern.test(logoBase64)) {
+        return res.status(400).json({ message: 'Invalid base64 data for logo' });
+      }
+
+      // --- Validate file size (2MB max) ---
+      const sizeInBytes = (logoBase64.length * 3) / 4;
+      if (sizeInBytes > 2 * 1024 * 1024) {
+        return res.status(400).json({ message: 'Logo file too large. Max 2MB.' });
+      }
+
+      // --- Get file extension from mimeType ---
+      const extMap = {
+        'image/jpeg': '.jpg',
+        'image/png':  '.png',
+        'image/webp': '.webp'
+      };
+      const ext = extMap[logoMimeType];
+
+      // --- Generate unique filename ---
+      const filename = `${uuidv4()}${ext}`;
+      const filepath = path.join(UPLOAD_DIR, filename);
+
+      // --- Decode base64 and write to disk ---
+      try {
+        const buffer = Buffer.from(logoBase64, 'base64');
+        fs.writeFileSync(filepath, buffer);
+        logoUrl = `/uploads/avatars/${filename}`;
+      } catch (err) {
+        return res.status(500).json({ message: 'Failed to save logo file' });
+      }
     }
 
     await client.query('BEGIN'); // Start Transaction
@@ -86,8 +111,8 @@ exports.register = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, salt);
     
     const userResult = await client.query(
-      'INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING id, role',
-      [email, passwordHash, 'Admin']
+      'INSERT INTO users (email, password_hash, role, must_change_password) VALUES ($1, $2, $3, $4) RETURNING id, role',
+      [email, passwordHash, 'Admin', false]
     );
     const userId = userResult.rows[0].id;
     const role = userResult.rows[0].role;
@@ -102,6 +127,23 @@ exports.register = async (req, res) => {
     );
 
     await client.query('COMMIT'); // End Transaction
+
+    // Send Welcome Email
+    const smtp = new SMTPClient(
+      process.env.SMTP_HOST || 'smtp.gmail.com',
+      process.env.SMTP_PORT || 587,
+      process.env.SMTP_EMAIL,
+      process.env.SMTP_APP_PASSWORD
+    );
+
+    if (process.env.SMTP_EMAIL && process.env.SMTP_APP_PASSWORD && process.env.SMTP_APP_PASSWORD !== 'your_app_password') {
+      const emailBody = `Hello ${name},\n\nWelcome to EmPay HRMS! Your registration was successful.\n\nYour Login ID is: ${loginId}\n\nPlease keep this ID safe as you will need it to log in.\n\nBest Regards,\nThe EmPay Team`;
+      smtp.sendMail(email, 'Welcome to EmPay - Your Login ID', emailBody)
+        .then(() => console.log(`Welcome email sent to ${email}`))
+        .catch(err => console.error(`Failed to send email to ${email}:`, err));
+    } else {
+      console.log('SMTP credentials not configured. Skipping welcome email.');
+    }
 
     res.status(201).json({
       message: 'Registration successful',
@@ -127,7 +169,7 @@ exports.login = async (req, res) => {
 
     // Find user using join
     const query = `
-      SELECT u.id, u.email, u.password_hash, u.role, p.login_id, p.full_name, c.logo_url 
+      SELECT u.id, u.email, u.password_hash, u.role, u.must_change_password, p.login_id, p.full_name, c.logo_url, c.name as company_name 
       FROM users u
       LEFT JOIN user_profiles p ON u.id = p.user_id
       LEFT JOIN companies c ON p.company_id = c.id
@@ -157,16 +199,55 @@ exports.login = async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
+      mustChangePassword: user.must_change_password,
       user: {
         loginId: user.login_id,
         name: user.full_name,
         email: user.email,
         role: user.role,
-        logoUrl: user.logo_url
+        logoUrl: user.logo_url,
+        companyName: user.company_name
       }
     });
   } catch (error) {
     console.error('Login Error:', error);
     res.status(500).json({ message: 'Server Error during login' });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { loginId, oldPassword, newPassword } = req.body;
+
+    const query = `
+      SELECT u.id, u.password_hash 
+      FROM users u
+      JOIN user_profiles p ON u.id = p.user_id
+      WHERE p.login_id = $1
+    `;
+    const userResult = await pool.query(query, [loginId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+    const user = userResult.rows[0];
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect old password' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+    await pool.query(
+      'UPDATE users SET password_hash = $1, must_change_password = FALSE WHERE id = $2',
+      [newPasswordHash, user.id]
+    );
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change Password Error:', error);
+    res.status(500).json({ message: 'Server Error during password change' });
   }
 };

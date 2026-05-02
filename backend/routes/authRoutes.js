@@ -13,15 +13,11 @@
 
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const { register, login } = require('../controllers/authController');
-
-// Configure multer for memory storage (file buffer will be sent to Cloudinary)
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const { register, login, changePassword } = require('../controllers/authController');
 
 // Routes
-router.post('/register', upload.single('logo'), register);
+router.post('/register', register);
 router.post('/login', login);
+router.post('/change-password', changePassword);
 
 module.exports = router;

@@ -15,6 +15,7 @@ import { Toaster } from 'react-hot-toast';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
+import ChangePassword from './pages/ChangePassword';
 import './index.css';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           <Route path="/login" element={<SignIn />} />
           <Route path="/register" element={<SignUp />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/change-password" element={<ChangePassword />} />
         </Routes>
       </div>
     </Router>

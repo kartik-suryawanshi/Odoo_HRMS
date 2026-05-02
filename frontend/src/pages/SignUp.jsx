@@ -38,7 +38,16 @@ const SignUp = () => {
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setLogo(e.target.files[0]);
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogo({
+          base64: reader.result.split(',')[1],
+          mimeType: file.type,
+          fileName: file.name
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -58,22 +67,22 @@ const SignUp = () => {
 
     setLoading(true);
 
-    const submitData = new FormData();
-    submitData.append('companyName', formData.companyName);
-    submitData.append('name', formData.name);
-    submitData.append('email', formData.email);
-    submitData.append('phone', formData.phone);
-    submitData.append('password', formData.password);
+    const submitData = {
+      companyName: formData.companyName,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password,
+    };
+
     if (logo) {
-      submitData.append('logo', logo);
+      submitData.logoBase64 = logo.base64;
+      submitData.logoMimeType = logo.mimeType;
+      submitData.logoFileName = logo.fileName;
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', submitData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await axios.post('http://localhost:5000/api/auth/register', submitData);
       setSuccess(response.data.user.login_id);
       toast.success('Registration successful! Please copy your Login ID.', { duration: 6000 });
       setFormData({
@@ -91,7 +100,7 @@ const SignUp = () => {
   return (
     <div className="auth-card large">
       <div className="logo-placeholder">
-        {logo ? <span>{logo.name}</span> : <span>App/Web Logo</span>}
+        {logo ? <span>{logo.fileName}</span> : <span>App/Web Logo</span>}
       </div>
 
       <form onSubmit={handleSubmit}>

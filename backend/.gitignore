@@ -1,3 +1,5 @@
 # node_modules and env files
 node_modules/
 .env
+.txt
+uploads/
