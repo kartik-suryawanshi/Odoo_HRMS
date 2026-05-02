@@ -10,11 +10,84 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+// Helper Components for Salary Engine
+const SalarySummary = ({ salary }) => {
+  const basic = salary.monthly_wage * (salary.basic_percent / 100);
+  const hra = basic * (salary.hra_percent / 100);
+  const perf = salary.monthly_wage * (salary.performance_bonus_percent / 100);
+  const lta = salary.monthly_wage * (salary.lta_percent / 100);
+  const standard = parseFloat(salary.standard_allowance) || 0;
+  
+  const pf = basic * (salary.pf_percent / 100);
+  const profTax = parseFloat(salary.professional_tax) || 0;
+  const netSalary = salary.monthly_wage - (pf + profTax);
+
+  return (
+    <div className="salary-summary-card">
+      <div className="summary-item">
+        <label>Gross Salary</label>
+        <span className="summary-val">₹ {parseFloat(salary.monthly_wage).toLocaleString()}</span>
+      </div>
+      <div className="summary-divider"></div>
+      <div className="summary-item">
+        <label>Total Deductions</label>
+        <span className="summary-val" style={{color: '#dc3545'}}>₹ {(pf + profTax).toLocaleString()}</span>
+      </div>
+      <div className="summary-divider"></div>
+      <div className="summary-item">
+        <label>Net In-Hand Salary</label>
+        <span className="summary-val" style={{color: '#28a745'}}>₹ {netSalary.toLocaleString()}</span>
+      </div>
+    </div>
+  );
+};
+
+const SalaryRow = ({ label, value, rule, percent, amount, onChange, isFixed, readOnly }) => (
+  <div className="component-row">
+    <div className="component-info">
+      <label>{label}</label>
+      <span className="calculated-value">₹ {value.toFixed(2)}</span>
+      <p className="formula-text">Rule: {rule}</p>
+    </div>
+    <div className="percent-input" style={isFixed ? { width: '120px' } : {}}>
+      {isFixed ? <span>₹</span> : null}
+      <input 
+        type="number" 
+        value={isFixed ? amount : percent} 
+        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        disabled={readOnly}
+      />
+      {!isFixed ? <span>%</span> : null}
+    </div>
+  </div>
+);
+
+const BalancingRow = ({ salary }) => {
+  const basic = salary.monthly_wage * (salary.basic_percent / 100);
+  const hra = basic * (salary.hra_percent / 100);
+  const perf = salary.monthly_wage * (salary.performance_bonus_percent / 100);
+  const lta = salary.monthly_wage * (salary.lta_percent / 100);
+  const standard = parseFloat(salary.standard_allowance) || 0;
+  const fixed = salary.monthly_wage - (basic + hra + perf + lta + standard);
+
+  return (
+    <div className="component-row balancing-comp" style={{ background: fixed < 0 ? '#fff5f5' : '#f8f9fa' }}>
+      <div className="component-info">
+        <label>Fixed Allowance (Balancing)</label>
+        <span className="calculated-value" style={{ color: fixed < 0 ? '#dc3545' : '#28a745' }}>₹ {fixed.toFixed(2)}</span>
+        <p className="formula-text">Auto: Wage - All Components</p>
+        {fixed < 0 && <p style={{color: '#dc3545', fontSize: '0.7rem', margin: 0}}>⚠️ Exceeds Wage!</p>}
+      </div>
+    </div>
+  );
+};
+
 const Profile = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
@@ -22,25 +95,31 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('Private Info');
   const [isEditing, setIsEditing] = useState({ about: false, jobLove: false, interests: false });
   const [privateInfo, setPrivateInfo] = useState({});
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
 
   useEffect(() => {
     fetchProfile();
   }, []);
 
   useEffect(() => {
-    if (profile && (profile.role === 'Admin' || profile.role === 'Payroll Officer') && activeTab === 'Salary Info') {
-      fetchSalary();
+    const userId = id || (profile ? profile.user_id : null);
+    if (userId && (profile.role === 'Admin' || profile.role === 'Payroll Officer') && activeTab === 'Salary Info') {
+      fetchSalary(userId);
+      fetchTemplates();
     }
-  }, [profile, activeTab]);
+  }, [profile, activeTab, id]);
 
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/profile/me', {
+      // If id is provided in URL, fetch that user, otherwise fetch 'me'
+      const endpoint = id ? `http://localhost:5000/api/profile/${id}` : 'http://localhost:5000/api/profile/me';
+      const res = await axios.get(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProfile(res.data);
-      setPrivateInfo(res.data); // Initialize form state with profile data
+      setPrivateInfo(res.data); 
     } catch (err) {
       toast.error('Failed to load profile');
       navigate('/dashboard');
@@ -49,22 +128,55 @@ const Profile = () => {
     }
   };
 
-  const fetchSalary = async () => {
+  const fetchSalary = async (userId) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/salary/${profile.user_id}`, {
+      const res = await axios.get(`http://localhost:5000/api/salary/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSalary(res.data);
+      setSelectedTemplateId(res.data.template_id);
     } catch (err) {
       console.error('Failed to load salary info');
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:5000/api/salary/templates/all', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTemplates(res.data);
+    } catch (err) {
+      console.error('Failed to load templates');
+    }
+  };
+
+  const handleTemplateChange = (templateId) => {
+    const selected = templates.find(t => t.id === parseInt(templateId));
+    if (selected) {
+      setSalary({
+        ...salary,
+        template_id: selected.id,
+        template_name: selected.name,
+        basic_percent: selected.basic_percent,
+        hra_percent: selected.hra_percent,
+        performance_bonus_percent: selected.performance_bonus_percent,
+        lta_percent: selected.lta_percent,
+        pf_percent: selected.pf_percent,
+        standard_allowance: selected.standard_allowance,
+        professional_tax: selected.professional_tax
+      });
+      setSelectedTemplateId(selected.id);
     }
   };
 
   const handleSalaryUpdate = async (updatedSalary) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/salary/${profile.user_id}`, updatedSalary, {
+      const userId = id || profile.user_id;
+      await axios.put(`http://localhost:5000/api/salary/${userId}`, updatedSalary, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Salary updated');
@@ -332,9 +444,12 @@ const Profile = () => {
                  <div className="loading">Loading Salary Configuration...</div>
                ) : (
                  <div className="salary-container">
+                    {/* Executive Summary Card */}
+                    <SalarySummary salary={salary} />
+
                     <div className="salary-header-grid">
                       <div className="salary-input-group">
-                        <label>Month Wage</label>
+                        <label>Monthly Wage (Base)</label>
                         <div className="input-with-label">
                           <input 
                             type="number" 
@@ -344,187 +459,80 @@ const Profile = () => {
                           <span>/ Month</span>
                         </div>
                       </div>
-                    <div className="salary-input-group">
-                      <label>Yearly wage</label>
-                      <div className="input-with-label disabled">
-                        <input type="number" value={salary.monthly_wage * 12} disabled />
-                        <span>/ Yearly</span>
+                      <div className="salary-input-group">
+                        <label>Select Template (Rules)</label>
+                        <select 
+                          value={selectedTemplateId || ''} 
+                          onChange={(e) => handleTemplateChange(e.target.value)}
+                          style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
+                        >
+                          {templates.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
                       </div>
-                    </div>
-                    <div className="salary-input-group">
-                      <label>No of working days in a week:</label>
-                      <input 
-                        type="number" 
-                        value={salary.working_days_per_week} 
-                        onChange={(e) => setSalary({...salary, working_days_per_week: parseInt(e.target.value) || 0})}
-                      />
-                    </div>
-                    <div className="salary-input-group">
-                      <label>Break Time:</label>
-                      <div className="input-with-label">
+                      <div className="salary-input-group">
+                        <label>Working Days/Week</label>
                         <input 
                           type="number" 
-                          value={salary.break_time_hrs} 
-                          onChange={(e) => setSalary({...salary, break_time_hrs: parseFloat(e.target.value) || 0})}
+                          value={salary.working_days_per_week} 
+                          onChange={(e) => setSalary({...salary, working_days_per_week: parseInt(e.target.value) || 0})}
                         />
-                        <span>hrs</span>
                       </div>
                     </div>
-                  </div>
 
-                  <hr style={{ margin: '30px 0', border: 'none', borderBottom: '1px solid #eee' }} />
+                    <hr style={{ margin: '30px 0', border: 'none', borderBottom: '1px solid #eee' }} />
 
-                  <div className="salary-components-grid">
-                    <div className="components-column">
-                      <h4 style={{ marginBottom: '20px', color: '#666' }}>Salary Components</h4>
-                      
-                      {/* Basic Salary */}
-                      <div className="component-row">
-                        <div className="component-info">
-                          <label>Basic Salary</label>
-                          <span className="calculated-value">₹ {(salary.monthly_wage * (salary.basic_percent / 100)).toFixed(2)} / month</span>
-                        </div>
-                        <div className="percent-input">
-                          <input 
-                            type="number" 
-                            value={salary.basic_percent} 
-                            onChange={(e) => setSalary({...salary, basic_percent: parseFloat(e.target.value) || 0})}
-                          />
-                          <span>%</span>
-                        </div>
+                    <div className="salary-components-grid">
+                      <div className="components-column">
+                        <h4 className="info-group-title">1. Earnings (Monthly)</h4>
+                        
+                        <SalaryRow label="Basic Salary" value={salary.monthly_wage * (salary.basic_percent / 100)} rule={`${salary.basic_percent}% of Wage`} percent={salary.basic_percent} readOnly={true} />
+                        
+                        <SalaryRow label="House Rent Allowance (HRA)" value={(salary.monthly_wage * (salary.basic_percent / 100)) * (salary.hra_percent / 100)} rule={`${salary.hra_percent}% of Basic`} percent={salary.hra_percent} readOnly={true} />
+                        
+                        <SalaryRow label="Standard Allowance" value={parseFloat(salary.standard_allowance)} rule="Fixed Amount" isFixed amount={salary.standard_allowance} readOnly={true} />
+                        
+                        <SalaryRow label="Performance Bonus" value={salary.monthly_wage * (salary.performance_bonus_percent / 100)} rule={`${salary.performance_bonus_percent}% of Wage`} percent={salary.performance_bonus_percent} readOnly={true} />
+                        
+                        <SalaryRow label="Leave Travel Allowance (LTA)" value={salary.monthly_wage * (salary.lta_percent / 100)} rule={`${salary.lta_percent}% of Wage`} percent={salary.lta_percent} readOnly={true} />
+
+                        <BalancingRow salary={salary} />
                       </div>
 
-                      {/* HRA - Based on Basic */}
-                      <div className="component-row">
-                        <div className="component-info">
-                          <label>House Rent Allowance</label>
-                          <span className="calculated-value">₹ {((salary.monthly_wage * (salary.basic_percent / 100)) * (salary.hra_percent / 100)).toFixed(2)} / month</span>
-                          <p style={{fontSize: '0.7rem', color: '#999', margin: 0}}>50% of the basic salary</p>
-                        </div>
-                        <div className="percent-input">
-                          <input 
-                            type="number" 
-                            value={salary.hra_percent} 
-                            onChange={(e) => setSalary({...salary, hra_percent: parseFloat(e.target.value) || 0})}
-                          />
-                          <span>%</span>
+                      <div className="deductions-column">
+                        <h4 className="info-group-title">2. Deductions</h4>
+                        <SalaryRow label="Provident Fund (PF)" value={(salary.monthly_wage * (salary.basic_percent / 100)) * (salary.pf_percent / 100)} rule={`${salary.pf_percent}% of Basic`} percent={salary.pf_percent} readOnly={true} />
+
+                        <SalaryRow label="Professional Tax" value={parseFloat(salary.professional_tax)} rule="Fixed Amount" isFixed amount={salary.professional_tax} readOnly={true} />
+                        
+                        <div style={{ marginTop: '50px' }}>
+                          <button 
+                            className="btn" 
+                            style={{ width: '100%' }}
+                            onClick={() => {
+                              const basic = salary.monthly_wage * (salary.basic_percent / 100);
+                              const hra = basic * (salary.hra_percent / 100);
+                              const perf = salary.monthly_wage * (salary.performance_bonus_percent / 100);
+                              const lta = salary.monthly_wage * (salary.lta_percent / 100);
+                              const standard = parseFloat(salary.standard_allowance) || 0;
+                              const fixed = salary.monthly_wage - (basic + hra + perf + lta + standard);
+                              
+                              if (fixed < 0) {
+                                toast.error('Total components cannot exceed Monthly Wage');
+                                return;
+                              }
+                              handleSalaryUpdate(salary);
+                            }}
+                          >
+                            Apply Template & Update Salary
+                          </button>
                         </div>
                       </div>
-
-                      {/* Standard Allowance - Fixed */}
-                      <div className="component-row">
-                        <div className="component-info">
-                          <label>Standard Allowance</label>
-                          <span className="calculated-value">₹ {parseFloat(salary.standard_allowance).toFixed(2)} / month</span>
-                          <p style={{fontSize: '0.7rem', color: '#999', margin: 0}}>Predetermined fixed amount</p>
-                        </div>
-                        <div className="percent-input" style={{ width: '120px' }}>
-                          <span>₹</span>
-                          <input 
-                            type="number" 
-                            value={salary.standard_allowance} 
-                            onChange={(e) => setSalary({...salary, standard_allowance: parseFloat(e.target.value) || 0})}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Performance Bonus - Based on Basic */}
-                      <div className="component-row">
-                        <div className="component-info">
-                          <label>Performance Bonus</label>
-                          <span className="calculated-value">₹ {((salary.monthly_wage * (salary.basic_percent / 100)) * (salary.performance_bonus_percent / 100)).toFixed(2)} / month</span>
-                          <p style={{fontSize: '0.7rem', color: '#999', margin: 0}}>Calculated as a % of basic salary</p>
-                        </div>
-                        <div className="percent-input">
-                          <input 
-                            type="number" 
-                            value={salary.performance_bonus_percent} 
-                            onChange={(e) => setSalary({...salary, performance_bonus_percent: parseFloat(e.target.value) || 0})}
-                          />
-                          <span>%</span>
-                        </div>
-                      </div>
-
-                      {/* Leave Travel Allowance - Based on Basic */}
-                      <div className="component-row">
-                        <div className="component-info">
-                          <label>Leave Travel Allowance</label>
-                          <span className="calculated-value">₹ {((salary.monthly_wage * (salary.basic_percent / 100)) * (salary.lta_percent / 100)).toFixed(2)} / month</span>
-                          <p style={{fontSize: '0.7rem', color: '#999', margin: 0}}>Calculated as a % of basic salary</p>
-                        </div>
-                        <div className="percent-input">
-                          <input 
-                            type="number" 
-                            value={salary.lta_percent} 
-                            onChange={(e) => setSalary({...salary, lta_percent: parseFloat(e.target.value) || 0})}
-                          />
-                          <span>%</span>
-                        </div>
-                      </div>
-
-                      {/* Fixed Allowance Calculation */}
-                      {(() => {
-                        const basic = salary.monthly_wage * (salary.basic_percent / 100);
-                        const hra = basic * (salary.hra_percent / 100);
-                        const perf = basic * (salary.performance_bonus_percent / 100);
-                        const lta = basic * (salary.lta_percent / 100);
-                        const standard = parseFloat(salary.standard_allowance) || 0;
-                        const fixed = salary.monthly_wage - (basic + hra + perf + lta + standard);
-                        return (
-                          <div className="component-row" style={{ background: '#f8f9fa', padding: '10px', borderRadius: '4px', border: '1px solid #eee' }}>
-                            <div className="component-info">
-                              <label>Fixed Allowance (Auto)</label>
-                              <span className="calculated-value" style={{ color: fixed < 0 ? '#dc3545' : '#28a745' }}>₹ {fixed.toFixed(2)} / month</span>
-                              <p style={{fontSize: '0.7rem', color: '#999', margin: 0}}>Wage - total of all components</p>
-                            </div>
-                          </div>
-                        );
-                      })()}
                     </div>
-
-                    <div className="deductions-column">
-                      <h4 style={{ marginBottom: '20px', color: '#666' }}>Provident Fund (PF)</h4>
-                      <div className="component-row">
-                        <div className="component-info">
-                          <label>Contribution Rate</label>
-                          <span className="calculated-value">₹ {(salary.monthly_wage * (salary.basic_percent / 100) * (salary.pf_percent / 100)).toFixed(2)} / month</span>
-                        </div>
-                        <div className="percent-input">
-                          <input 
-                            type="number" 
-                            value={salary.pf_percent} 
-                            onChange={(e) => setSalary({...salary, pf_percent: parseFloat(e.target.value) || 0})}
-                          />
-                          <span>%</span>
-                        </div>
-                      </div>
-
-                      <h4 style={{ margin: '30px 0 20px 0', color: '#666' }}>Tax Deductions</h4>
-                      <div className="component-row">
-                        <div className="component-info">
-                          <label>Professional Tax</label>
-                        </div>
-                        <div className="percent-input" style={{ width: '120px' }}>
-                          <span>₹</span>
-                          <input 
-                            type="number" 
-                            value={salary.professional_tax} 
-                            onChange={(e) => setSalary({...salary, professional_tax: parseFloat(e.target.value) || 0})}
-                          />
-                        </div>
-                      </div>
-                      
-                      <button 
-                        className="btn" 
-                        style={{ marginTop: '40px', width: '100%' }}
-                        onClick={() => handleSalaryUpdate(salary)}
-                      >
-                        Save Salary Structure
-                      </button>
-                    </div>
-                  </div>
-               </div>
-             ))}
+                 </div>
+               )
+             )}
 
              {activeTab === 'Salary Info' && !salary && profile.role === 'Employee' && (
                <div className="empty-state">

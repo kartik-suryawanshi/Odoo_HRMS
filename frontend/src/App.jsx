@@ -17,6 +17,8 @@ import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import ChangePassword from './pages/ChangePassword';
 import Profile from './pages/Profile';
+import PayrollDashboard from './pages/PayrollDashboard';
+import SalaryTemplates from './pages/SalaryTemplates';
 import './index.css';
 
 function App() {
@@ -31,6 +33,9 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/change-password" element={<ChangePassword />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/employee/:id" element={<Profile />} />
+          <Route path="/payroll" element={<PayrollDashboard />} />
+          <Route path="/salary-templates" element={<SalaryTemplates />} />
         </Routes>
       </div>
     </Router>
