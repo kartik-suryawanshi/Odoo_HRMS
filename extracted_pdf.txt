@@ -1,0 +1,104 @@
+EmP ay – Sm art Hu man Resou rce Managem ent Syst em 
+EmPay – S implifyin g HR  & Payroll Operations for Smarter W orkplaces 
+EmPay aims to modernize and simplify ho w organizations manage peo ple, 
+processes, and payroll through a  comprehensive, all-in-one Hu man Resou rce 
+Management System (HR MS). The pla tform is designed to provide a clean, 
+reliable, and user-friendly experience for both employees and 
+administrators—enabling seamless collaboration in managing attendance, le ave, 
+payroll, and analytics from a unified interface. By f ocusing on robust, scalable, a nd 
+thoughtfully engineered solutions, EmPay strives to reduce  manual depe ndency, 
+improve tra nsparency, and em power organizations—especially startups, 
+institutio ns, and SMEs—to make informed, da ta-driven workforce decis ions. 
+Develop a working system, focusing on the following modules and flows: 
+User & Role Management 
+User registration and login functionality. 
+Role-based access (Employee / HR Officer/ Admin / Payroll O fficer). 
+Editable profile management. 
+Attendance & Leave Management 
+Employees can mark attendance and vie w their da ily/monthly logs. 
+Leave applic ation, approval, and rejectio n workflows. 
+Payroll M anagement 
+Basic payroll module s howing salary breakdown, deductio ns, and payout 
+summary. 
+Option for Admin/Payroll Officer t o generate or edit m onthly reports and 
+payslips. 
+Dashboard & Analytics 
+ Display of attendance, leaves, and payroll metrics through cha rts or 
+summaries. 
+ Admin overview of em ployee da ta and overall HR  statistics. The Challenge
+Vision & Mission
+Problem Statement
+
+1. Admin 
+Register on the po rtal and manage us er accounts. 
+Create, read, upda te, and delet e data across all modules . 
+Manage us er roles in settings. 
+Oversee all activities  and ensure smooth system operations. 
+No acces s limitations. 
+ 
+2. Em ployee 
+Apply for time off and see tim e off status. 
+View pe rsonal attendance and per formance records. 
+Can acces s the em ployee dir ectory and vie w individua l records but 
+cannot modify them . 
+Cannot access settings, payroll, reports, salary info. 
+3. HR Officer 
+Create and upda te em ployee profiles and det ails. 
+Monitor attendance records of all employees. 
+Manage &  Allocate new leaves to employees. 
+Cannot access payroll data or access system settings. 
+4. Payroll O fficer 
+ Approve or reject tim e-off reques ts. 
+ Generate payslip and leave reports. 
+ Cannot create or modify em ployee da ta or acces s system settings, e xcept 
+for managing salary-related in formation. 
+Manage P ayroll, Time Off and Reports. 
+ Can acces s attendance. 
+ 
+1. Payroll 
+The pr ocess of calcula ting and dis tributin g em ployee salaries, wages, bonuses, 
+and deductio ns. All payroll-related calcula tions are based on employee 
+attendance records for the giv en pay per iod. 
+2. Payrun 
+A specific  payroll cycle or per iod dur ing which  salar ies ar e processed and 
+paid to emplo yees. The p ayrun  amount  is calculat ed based on  attendance, 
+appr oved le aves, and applic able deductions.  Roles & Responsibilities
+Terminologies
+ 
+ 
+ 
+ 
+ 
+ 
+
+3. Payslip 
+An of ficial document pr ovided  to an emplo yee for each p ayrun,  showing  a 
+detailed br eakdown of e arnings, deductions,  and net p ay. Payslips ar e 
+automatic ally generat ed once p ayroll is pr ocessed. 
+4. Tim e-Off 
+A per iod dur ing which  an emplo yee is of ficiall y per mitted to be absent fr om 
+work (such as  vacation,  sick le ave, or personal le ave). Appr oved time-of fs 
+are factored int o payroll calculations. 
+5. Wage 
+The monet ary compensation  paid to an emplo yee for their  work dur ing a 
+specific  period. W ages ar e calculat ed based on  attendance,  working  
+hours, and  appr oved le aves. 
+6. Provident Fund (PF) Contribution  
+A retirement benefit  scheme in which  both the emplo yee and  emplo yer 
+contr ibute a fixed per centage ( commonl y 12%) of the emplo yeeʼs basic 
+salar y every month. PF is c alculat ed based on  the b asic salar y and ser ves 
+as long-t erm sa vings f or the emplo yee. 
+7. Profession al Tax 
+A small monthly tax levied b y the state government on individua ls earning income 
+through em ployment or profession. It is deduct ed dir ectly from the gross sa lary as 
+part of monthly payroll processing. 
+ Source co de hosted on Git repository (with m eaningful co mmits) 
+Why is t his Ha ckathon Proble m Important? 
+ Studen ts will le arn real-world ER P workflo ws. 
+ Understand how modules  talk to each other f or Eg (Employees → 
+Attendance →  Payroll). 
+ Practice pr oblem -solving using bus iness logic, n ot just coding. 
+ 
+Mocku p:- https ://link.excalidraw.com/l/65V Nwvy7 c4X/7gxoB8JymIS 
+ Deliverables
+
