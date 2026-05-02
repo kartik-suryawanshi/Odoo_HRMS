@@ -19,6 +19,8 @@ const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const salaryRoutes = require('./routes/salaryRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,6 +37,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/salary', salaryRoutes);
 
 // Base route for health check
 app.get('/', (req, res) => {

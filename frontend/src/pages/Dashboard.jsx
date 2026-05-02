@@ -28,7 +28,7 @@ const Dashboard = () => {
   
   const [employees, setEmployees] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addFormData, setAddFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', yearOfJoining: new Date().getFullYear() });
+  const [addFormData, setAddFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', yearOfJoining: new Date().getFullYear(), role: 'Employee' });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -98,7 +98,7 @@ const Dashboard = () => {
       });
       toast.success('Employee added successfully! Email sent.');
       setShowAddModal(false);
-      setAddFormData({ firstName: '', lastName: '', email: '', phone: '', yearOfJoining: new Date().getFullYear() });
+      setAddFormData({ firstName: '', lastName: '', email: '', phone: '', yearOfJoining: new Date().getFullYear(), role: 'Employee' });
       fetchEmployees();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to add employee');
@@ -240,7 +240,7 @@ const Dashboard = () => {
               {/* Profile Dropdown */}
               {showProfileDropdown && (
                 <div className="profile-dropdown">
-                  <div className="dropdown-item" onClick={() => { setShowProfileDropdown(false); toast('Profile coming soon'); }}>
+                  <div className="dropdown-item" onClick={() => { setShowProfileDropdown(false); navigate('/profile'); }}>
                     My Profile
                   </div>
                   <div className="dropdown-item" onClick={handleLogout} style={{ color: '#dc3545' }}>
@@ -387,6 +387,19 @@ const Dashboard = () => {
               <div className="form-group">
                 <label>Year of Joining</label>
                 <input type="number" value={addFormData.yearOfJoining} onChange={(e) => setAddFormData({...addFormData, yearOfJoining: e.target.value})} required />
+              </div>
+              <div className="form-group">
+                <label>Assigned Role</label>
+                <select 
+                  value={addFormData.role} 
+                  onChange={(e) => setAddFormData({...addFormData, role: e.target.value})}
+                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  required
+                >
+                  <option value="Employee">Employee</option>
+                  <option value="HR Officer">HR Officer</option>
+                  <option value="Payroll Officer">Payroll Officer</option>
+                </select>
               </div>
               <button type="submit" className="btn" disabled={loading}>
                 {loading ? 'Adding...' : 'Add Employee'}

@@ -72,7 +72,11 @@ exports.addEmployee = async (req, res) => {
   const client = await pool.connect();
   try {
     const adminId = req.user.id;
-    const { firstName, lastName, email, phone, yearOfJoining } = req.body;
+    const { firstName, lastName, email, phone, yearOfJoining, role } = req.body;
+
+    // Validate role
+    const validRoles = ['Employee', 'HR Officer', 'Payroll Officer'];
+    const assignedRole = validRoles.includes(role) ? role : 'Employee';
 
     // Get Admin's company info
     const adminProfile = await client.query(`
@@ -101,7 +105,7 @@ exports.addEmployee = async (req, res) => {
     // Insert into users
     const userResult = await client.query(
       'INSERT INTO users (email, password_hash, role, must_change_password) VALUES ($1, $2, $3, $4) RETURNING id',
-      [email, passwordHash, 'Employee', true]
+      [email, passwordHash, assignedRole, true]
     );
     const userId = userResult.rows[0].id;
 

@@ -435,3 +435,306 @@ body {
   cursor: pointer;
   color: #666;
 }
+
+/* Profile Page Styles */
+.profile-header-card {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  display: flex;
+  gap: 40px;
+  margin-bottom: 30px;
+}
+
+.profile-pic-large {
+  width: 150px;
+  height: 150px;
+  background: #ffcfd2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  color: #333;
+  position: relative;
+  border: 4px solid #fff;
+  box-shadow: 0 0 0 2px #ffcfd2;
+}
+
+.edit-overlay {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+.profile-main-info p {
+  margin: 8px 0;
+  color: #666;
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 20px;
+}
+
+.profile-tab {
+  padding: 12px 30px;
+  background: #f8f9fa;
+  border: 1px solid #eee;
+  cursor: pointer;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.profile-tab.active {
+  background: white;
+  border-bottom: 2px solid #7c3aed;
+  color: #7c3aed;
+}
+
+.profile-section {
+  background: white;
+  padding: 25px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.profile-section h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.profile-section p {
+  color: #444;
+  line-height: 1.6;
+}
+
+.profile-section textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.edit-btn {
+  font-size: 0.9rem;
+  color: #999;
+  cursor: pointer;
+}
+
+.edit-btn:hover {
+  color: #7c3aed;
+}
+
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.tag {
+  background: #f3f0ff;
+  color: #7c3aed;
+  padding: 6px 15px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.tag-blue {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #7c3aed;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-text:hover {
+  text-decoration: underline;
+}
+
+.empty-state {
+  background: white;
+  padding: 50px;
+  text-align: center;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  color: #888;
+}
+
+/* Salary Module Styles */
+.salary-header-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.salary-input-group label {
+  display: block;
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.input-with-label {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0 10px;
+}
+
+.input-with-label input {
+  border: none;
+  padding: 10px 5px;
+  width: 100%;
+  font-weight: 600;
+  color: #333;
+}
+
+.input-with-label input:focus {
+  outline: none;
+}
+
+.input-with-label span {
+  color: #999;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.input-with-label.disabled {
+  background: #f8f9fa;
+}
+
+.salary-components-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 50px;
+}
+
+.component-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.component-info label {
+  display: block;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.calculated-value {
+  font-size: 0.85rem;
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.percent-input {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0 8px;
+  width: 80px;
+}
+
+.percent-input input {
+  border: none;
+  padding: 8px 4px;
+  width: 100%;
+  text-align: right;
+  font-weight: 600;
+}
+
+.percent-input input:focus {
+  outline: none;
+}
+
+.percent-input span {
+  color: #666;
+  font-weight: 600;
+}
+
+/* Private Info Detailed Styles */
+.private-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+
+.info-group-title {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 25px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.form-group-horizontal {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 20px;
+}
+
+.form-group-horizontal label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.form-group-horizontal input, 
+.form-group-horizontal select, 
+.form-group-horizontal textarea {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.form-group-horizontal input:focus, 
+.form-group-horizontal select:focus, 
+.form-group-horizontal textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
+}
+
+.disabled-input {
+  background: #f8f9fa;
+  color: #999;
+  cursor: not-allowed;
+}
