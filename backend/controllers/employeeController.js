@@ -41,12 +41,12 @@ exports.getEmployees = async (req, res) => {
     // Fetch employees for this company, using DISTINCT ON to get only the latest attendance log for today
     const query = `
       SELECT DISTINCT ON (p.user_id)
-        p.user_id as id, p.full_name as name, p.login_id, u.email, p.phone, p.year_of_joining,
+        p.user_id as id, p.full_name as name, p.login_id, u.email, p.phone, p.year_of_joining, u.role,
         al.check_in_time, al.check_out_time
       FROM user_profiles p
       JOIN users u ON p.user_id = u.id
       LEFT JOIN attendance_logs al ON p.user_id = al.user_id AND DATE(al.check_in_time) = CURRENT_DATE
-      WHERE p.company_id = $1 AND p.user_id != $2 AND u.role = 'Employee'
+      WHERE p.company_id = $1 AND p.user_id != $2 AND u.role != 'Admin'
       ORDER BY p.user_id, al.check_in_time DESC
     `;
     const employeesResult = await pool.query(query, [companyId, adminId]);

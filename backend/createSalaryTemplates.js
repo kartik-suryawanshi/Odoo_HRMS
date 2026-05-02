@@ -15,9 +15,11 @@ async function setupTemplates() {
     await client.connect();
     console.log('Connected to database.');
 
-    // 1. Create salary_templates table
+    // 1. Drop and Recreate salary_templates table for a fresh start
+    await client.query('DROP TABLE IF EXISTS salary_templates CASCADE;');
+    
     await client.query(`
-      CREATE TABLE IF NOT EXISTS salary_templates (
+      CREATE TABLE salary_templates (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) UNIQUE NOT NULL,
         basic_percent DECIMAL(5,2) DEFAULT 50.00,

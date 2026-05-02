@@ -130,3 +130,21 @@ exports.getCurrentStatus = async (req, res) => {
     res.status(500).json({ message: 'Server Error getting status' });
   }
 };
+
+// Get Current User's Own Logs
+exports.getMyLogs = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const query = `
+      SELECT id, check_in_time, check_out_time, total_hours 
+      FROM attendance_logs
+      WHERE user_id = $1
+      ORDER BY check_in_time DESC
+    `;
+    const logs = await pool.query(query, [userId]);
+    res.json(logs.rows);
+  } catch (error) {
+    console.error('Get My Logs Error:', error);
+    res.status(500).json({ message: 'Server Error getting personal logs' });
+  }
+};

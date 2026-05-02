@@ -8,6 +8,7 @@ const router = express.Router();
 const { getSalaryInfo, updateSalaryInfo } = require('../controllers/salaryController');
 const { getAllTemplates, createTemplate, updateTemplate } = require('../controllers/salaryTemplateController');
 const { getPayrollSummary } = require('../controllers/payrollController');
+const { getGrades, createGrade, updateGrade } = require('../controllers/gradeController');
 const { protect } = require('../middleware/authMiddleware');
 
 // User Specific Salary
@@ -18,6 +19,11 @@ router.put('/:userId', protect, updateSalaryInfo);
 router.get('/templates/all', protect, getAllTemplates);
 router.post('/templates', protect, createTemplate);
 router.put('/templates/:id', protect, updateTemplate);
+
+// Grades (Admin Only)
+router.get('/grades/all', protect, getGrades);
+router.post('/grades', protect, createGrade);
+router.put('/grades/:id', protect, updateGrade);
 
 // Payroll Summary (Admin/Payroll Only)
 router.get('/admin/summary', protect, getPayrollSummary);
