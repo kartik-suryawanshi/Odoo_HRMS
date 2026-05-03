@@ -10,9 +10,10 @@ const pool = require('../config/db');
  * @param {number} userId - The ID of the employee.
  * @param {number} month - Optional month (1-12)
  * @param {number} year - Optional year
+ * @param {boolean} fullMonth - If true, ignores attendance and returns full salary structure.
  * @returns {Object} - Calculated breakdown and net salary.
  */
-exports.calculateSalary = async (userId, month, year) => {
+exports.calculateSalary = async (userId, month, year, fullMonth = false) => {
   try {
     const targetMonth = month || (new Date().getMonth() + 1);
     const targetYear = year || new Date().getFullYear();
@@ -65,16 +66,28 @@ exports.calculateSalary = async (userId, month, year) => {
       const end = new Date(l.end_date);
       while (curr <= end) {
         if (curr.getMonth() + 1 === targetMonth && curr.getFullYear() === targetYear) {
-          const day = curr.getDay();
-          if (day !== 0 && day !== 6) { // Only count working days as leaves
-            paidLeaveDates.add(curr.toDateString());
-          }
+          paidLeaveDates.add(curr.toDateString());
         }
         curr.setDate(curr.getDate() + 1);
       }
     });
 
     const approvedPaidLeaveDays = paidLeaveDates.size;
+
+    // Create a set of "Unpaid Leave Dates"
+    const unpaidLeaveDates = new Set();
+    leavesRes.rows.forEach(l => {
+      if (l.leave_type !== 'Unpaid Leave') return;
+      let curr = new Date(l.start_date);
+      const end = new Date(l.end_date);
+      while (curr <= end) {
+        if (curr.getMonth() + 1 === targetMonth && curr.getFullYear() === targetYear) {
+          unpaidLeaveDates.add(curr.toDateString());
+        }
+        curr.setDate(curr.getDate() + 1);
+      }
+    });
+    const unpaidLeaveDays = unpaidLeaveDates.size;
 
     // Calculate working days
     const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
@@ -86,7 +99,6 @@ exports.calculateSalary = async (userId, month, year) => {
       const isWorking = date.getDay() !== 0 && date.getDay() !== 6;
       if (isWorking) {
         totalWorkingDays++;
-        // If it's the current month, only count working days that have already occurred
         if (isCurrentMonth && d <= today.getDate()) {
           workingDaysToDate++;
         }
@@ -94,12 +106,21 @@ exports.calculateSalary = async (userId, month, year) => {
     }
 
     let payableDays = presentDays + approvedPaidLeaveDays;
-    if (isFutureMonth) {
-      payableDays = totalWorkingDays; // Assume full pay for future
+    let computedAbsences = 0;
+
+    if (fullMonth) {
+      payableDays = totalWorkingDays;
+      computedAbsences = 0;
+    } else if (isFutureMonth) {
+      payableDays = totalWorkingDays;
     } else if (isCurrentMonth) {
-      // Absences = (Working days passed so far) - (Actual days present + Approved Paid Leaves)
-      const absencesSoFar = Math.max(0, workingDaysToDate - (presentDays + approvedPaidLeaveDays));
-      payableDays = totalWorkingDays - absencesSoFar;
+      // Absences = Days that passed which were not worked AND not covered by paid leave
+      computedAbsences = Math.max(0, workingDaysToDate - (presentDays + approvedPaidLeaveDays));
+      payableDays = totalWorkingDays - computedAbsences;
+    } else {
+      // Past month: exactly what was worked + paid leave
+      payableDays = presentDays + approvedPaidLeaveDays;
+      computedAbsences = totalWorkingDays - payableDays;
     }
 
     // Proration Ratio
@@ -121,6 +142,10 @@ exports.calculateSalary = async (userId, month, year) => {
       summary: {
         base_wage: baseWage,
         actual_wage: actualWage,
+        present_days: presentDays,
+        paid_leave_days: approvedPaidLeaveDays,
+        unpaid_leave_days: unpaidLeaveDays,
+        absences: computedAbsences,
         payable_days: payableDays,
         total_working_days: totalWorkingDays,
         gross: 0,

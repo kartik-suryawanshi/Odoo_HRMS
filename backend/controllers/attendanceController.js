@@ -81,10 +81,17 @@ exports.checkOut = async (req, res) => {
 // Get User Logs
 exports.getUserLogs = async (req, res) => {
   try {
-    const { userId } = req.params;
+    let { userId } = req.params;
     
-    // Ensure admin can only fetch logs, or user fetches their own
-    if (req.user.role !== 'Admin' && req.user.id !== parseInt(userId)) {
+    // Resolve 'me' to the current logged-in user's ID
+    if (userId === 'me') {
+      userId = req.user.id;
+    } else {
+      userId = parseInt(userId);
+    }
+
+    // Ensure authorized to view logs
+    if (req.user.role !== 'Admin' && req.user.id !== userId) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 

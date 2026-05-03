@@ -1,18 +1,29 @@
 /**
  * File: frontend/src/pages/SalaryTemplates.jsx
- * Purpose: Manage rule-based salary templates.
+ * Purpose: Professional Rule-Based Salary Template Builder.
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const SalaryTemplates = () => {
-  const navigate = useNavigate();
   const [templates, setTemplates] = useState([]);
-  const [editingTemplate, setEditingTemplate] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showEditor, setShowEditor] = useState(false);
+  
+  // Default structure based on user's screenshot
+  const [currentTemplate, setCurrentTemplate] = useState({
+    name: '',
+    components: [
+      { name: 'Basic Salary', computation_type: 'PERCENTAGE', value: 50, based_on: 'WAGE', is_deduction: false },
+      { name: 'House Rent Allowance (HRA)', computation_type: 'PERCENTAGE', value: 50, based_on: 'BASIC SALARY', is_deduction: false },
+      { name: 'Performance Bonus', computation_type: 'PERCENTAGE', value: 8.33, based_on: 'BASIC SALARY', is_deduction: false },
+      { name: 'Leave Travel Allowance (LTA)', computation_type: 'PERCENTAGE', value: 8.33, based_on: 'BASIC SALARY', is_deduction: false },
+      { name: 'Provident Fund (PF)', computation_type: 'PERCENTAGE', value: 12, based_on: 'BASIC SALARY', is_deduction: true },
+      { name: 'Professional Tax', computation_type: 'FIXED', value: 200, based_on: 'WAGE', is_deduction: true },
+    ]
+  });
 
   useEffect(() => {
     fetchTemplates();
@@ -32,22 +43,31 @@ const SalaryTemplates = () => {
     }
   };
 
+  const updateComponent = (index, field, val) => {
+    const newComps = [...currentTemplate.components];
+    newComps[index][field] = val;
+    setCurrentTemplate({ ...currentTemplate, components: newComps });
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!currentTemplate.name) {
+      return toast.error('Please provide a name for this template');
+    }
     try {
       const token = localStorage.getItem('token');
-      if (editingTemplate.id) {
-        await axios.put(`http://localhost:5000/api/salary/templates/${editingTemplate.id}`, editingTemplate, {
+      if (currentTemplate.id) {
+        await axios.put(`http://localhost:5000/api/salary/templates/${currentTemplate.id}`, currentTemplate, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success('Template updated');
+        toast.success('Template updated successfully');
       } else {
-        await axios.post('http://localhost:5000/api/salary/templates', editingTemplate, {
+        await axios.post('http://localhost:5000/api/salary/templates', currentTemplate, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success('Template created');
+        toast.success('New template created successfully');
       }
-      setEditingTemplate(null);
+      setShowEditor(false);
       fetchTemplates();
     } catch (err) {
       toast.error('Failed to save template');
@@ -57,85 +77,141 @@ const SalaryTemplates = () => {
   if (loading) return <div className="loading">Loading Templates...</div>;
 
   return (
-    <div className="dashboard-layout">
-      <div className="sidebar">
-        <div className="sidebar-logo" onClick={() => navigate('/dashboard')} style={{cursor: 'pointer'}}>
-          <div style={{ width: 40, height: 40, background: '#eee', borderRadius: '4px' }}></div>
-          <span>EmPay</span>
-        </div>
-        <div className="sidebar-nav">
-          <div className="nav-item" onClick={() => navigate('/dashboard')}>Dashboard</div>
-          <div className="nav-item" onClick={() => navigate('/profile')}>My Profile</div>
-          <div className="nav-item" onClick={() => navigate('/payroll')}>Payroll</div>
-          <div className="nav-item active" onClick={() => navigate('/salary-templates')}>Templates</div>
-        </div>
-      </div>
+    <div className="templates-page">
+      {!showEditor ? (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+            <h3 style={{ margin: 0 }}>Salary Templates Library</h3>
+            <button className="btn" onClick={() => {
+               setCurrentTemplate({ name: '', components: currentTemplate.components }); // Reset name but keep structure
+               setShowEditor(true);
+            }}>
+              + Create New Template
+            </button>
+          </div>
 
-      <div className="main-area">
-        <div className="top-header">
-          <h2>Salary Templates (Rules)</h2>
-          <button className="btn" onClick={() => setEditingTemplate({ name: 'New Template', basic_percent: 50, hra_percent: 50, pf_percent: 12, performance_bonus_percent: 8.33, lta_percent: 8.33, standard_allowance: 4167, professional_tax: 200 })}>
-            + Create Template
-          </button>
-        </div>
-
-        <div className="dashboard-content" style={{ padding: '30px' }}>
-          <div className="template-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+          <div className="template-grid">
             {templates.map(t => (
-              <div key={t.id} className="template-card" style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <div key={t.id} className="template-card" style={{ background: 'white', padding: '20px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ margin: 0 }}>{t.name}</h3>
-                  <span className="edit-btn" onClick={() => setEditingTemplate(t)}>✎</span>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#333' }}>{t.name}</h4>
+                  <button className="btn-text" onClick={() => { setCurrentTemplate(t); setShowEditor(true); }}>Edit Structure ✎</button>
                 </div>
-                <hr style={{ margin: '15px 0', border: 'none', borderBottom: '1px solid #eee' }} />
-                <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                  <p><strong>Basic:</strong> {t.basic_percent}% of Wage</p>
-                  <p><strong>HRA:</strong> {t.hra_percent}% of Basic</p>
-                  <p><strong>PF:</strong> {t.pf_percent}% of Basic</p>
-                  <p><strong>Deduction:</strong> ₹ {t.professional_tax}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '15px' }}>
+                  {t.components?.map((c, i) => (
+                    <span key={i} className="tag" style={{ background: c.is_deduction ? '#fee2e2' : '#f0f9ff', color: c.is_deduction ? '#991b1b' : '#075985', fontSize: '0.7rem' }}>
+                      {c.name}: {c.value}{c.computation_type === 'PERCENTAGE' ? '%' : ''}
+                    </span>
+                  ))}
                 </div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Edit Modal Overlay */}
-        {editingTemplate && (
-          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div className="modal-content" style={{ background: 'white', padding: '30px', borderRadius: '12px', width: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
-              <h3>{editingTemplate.id ? 'Edit Template' : 'New Template'}</h3>
-              <form onSubmit={handleSave}>
-                <div className="form-group" style={{ marginBottom: '15px' }}>
-                  <label>Template Name</label>
-                  <input type="text" value={editingTemplate.name} onChange={e => setEditingTemplate({...editingTemplate, name: e.target.value})} required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                  <div className="form-group">
-                    <label>Basic (% of Wage)</label>
-                    <input type="number" value={editingTemplate.basic_percent} onChange={e => setEditingTemplate({...editingTemplate, basic_percent: e.target.value})} />
-                  </div>
-                  <div className="form-group">
-                    <label>HRA (% of Basic)</label>
-                    <input type="number" value={editingTemplate.hra_percent} onChange={e => setEditingTemplate({...editingTemplate, hra_percent: e.target.value})} />
-                  </div>
-                  <div className="form-group">
-                    <label>PF (% of Basic)</label>
-                    <input type="number" value={editingTemplate.pf_percent} onChange={e => setEditingTemplate({...editingTemplate, pf_percent: e.target.value})} />
-                  </div>
-                  <div className="form-group">
-                    <label>Prof. Tax (Fixed)</label>
-                    <input type="number" value={editingTemplate.professional_tax} onChange={e => setEditingTemplate({...editingTemplate, professional_tax: e.target.value})} />
-                  </div>
-                </div>
-                <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-                  <button type="submit" className="btn">Save Template</button>
-                  <button type="button" className="btn-text" onClick={() => setEditingTemplate(null)}>Cancel</button>
-                </div>
-              </form>
-            </div>
+        </>
+      ) : (
+        <div className="template-builder-container">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+             <h3 style={{ margin: 0 }}>{currentTemplate.id ? 'Edit Salary Template' : 'Build New Salary Template'}</h3>
+             <button className="btn-text" onClick={() => setShowEditor(false)}>← Back to Library</button>
           </div>
-        )}
-      </div>
+
+          <form onSubmit={handleSave} className="template-form">
+            <div className="template-header-box" style={{ background: 'white', padding: '25px', borderRadius: '12px', marginBottom: '30px', border: '1px solid #eee' }}>
+               <div className="form-group" style={{ margin: 0, maxWidth: '400px' }}>
+                  <label>Template Name (e.g. Standard Employee, Senior Manager)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter template name..."
+                    value={currentTemplate.name} 
+                    onChange={e => setCurrentTemplate({...currentTemplate, name: e.target.value})} 
+                    required 
+                    style={{ fontSize: '1.1rem', fontWeight: '500' }}
+                  />
+               </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+               {/* 1. EARNINGS SECTION */}
+               <div className="earnings-builder">
+                  <h4 className="info-group-title" style={{ marginBottom: '20px' }}>1. Earnings (Monthly)</h4>
+                  {currentTemplate.components.filter(c => !c.is_deduction).map((c, idx) => {
+                    const globalIdx = currentTemplate.components.findIndex(comp => comp === c);
+                    return (
+                      <div key={idx} className="builder-row" style={{ marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #f5f5f5' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                               <p style={{ margin: 0, fontWeight: '600', color: '#333' }}>{c.name}</p>
+                               <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: '#888' }}>
+                                  Rule: {c.computation_type === 'PERCENTAGE' ? `${c.value}% of ${c.based_on}` : `Fixed Amount`}
+                               </p>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                               <input 
+                                 type="number" 
+                                 step="0.01"
+                                 value={c.value} 
+                                 onChange={e => updateComponent(globalIdx, 'value', e.target.value)}
+                                 style={{ width: '80px', textAlign: 'right', padding: '8px' }}
+                               />
+                               <span style={{ color: '#666', width: '20px' }}>{c.computation_type === 'PERCENTAGE' ? '%' : '₹'}</span>
+                               <select 
+                                 value={c.computation_type} 
+                                 onChange={e => updateComponent(globalIdx, 'computation_type', e.target.value)}
+                                 style={{ padding: '6px', fontSize: '0.8rem' }}
+                               >
+                                  <option value="PERCENTAGE">%</option>
+                                  <option value="FIXED">₹</option>
+                               </select>
+                            </div>
+                         </div>
+                      </div>
+                    );
+                  })}
+                  <div className="balancing-box" style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1', marginTop: '20px' }}>
+                     <p style={{ margin: 0, fontWeight: '600', color: '#475569' }}>Fixed Allowance (Balancing)</p>
+                     <p style={{ margin: '5px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>Automatically calculated to match total CTC</p>
+                  </div>
+               </div>
+
+               {/* 2. DEDUCTIONS SECTION */}
+               <div className="deductions-builder">
+                  <h4 className="info-group-title" style={{ marginBottom: '20px' }}>2. Deductions</h4>
+                  {currentTemplate.components.filter(c => c.is_deduction).map((c, idx) => {
+                    const globalIdx = currentTemplate.components.findIndex(comp => comp === c);
+                    return (
+                      <div key={idx} className="builder-row" style={{ marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #f5f5f5' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                               <p style={{ margin: 0, fontWeight: '600', color: '#333' }}>{c.name}</p>
+                               <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: '#888' }}>
+                                  Rule: {c.computation_type === 'PERCENTAGE' ? `${c.value}% of ${c.based_on}` : `Fixed Amount`}
+                               </p>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                               <input 
+                                 type="number" 
+                                 step="0.01"
+                                 value={c.value} 
+                                 onChange={e => updateComponent(globalIdx, 'value', e.target.value)}
+                                 style={{ width: '80px', textAlign: 'right', padding: '8px' }}
+                               />
+                               <span style={{ color: '#666', width: '20px' }}>{c.computation_type === 'PERCENTAGE' ? '%' : '₹'}</span>
+                            </div>
+                         </div>
+                      </div>
+                    );
+                  })}
+
+                  <div style={{ marginTop: '50px' }}>
+                     <button type="submit" className="btn" style={{ width: '100%', height: '50px', fontSize: '1rem' }}>
+                        Save Template & Update Rules
+                     </button>
+                  </div>
+               </div>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

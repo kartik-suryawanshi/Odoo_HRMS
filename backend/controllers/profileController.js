@@ -14,7 +14,13 @@ const pool = require('../config/db');
 // Get Profile
 exports.getProfile = async (req, res) => {
   try {
-    const userId = req.params.userId || req.user.id;
+    let userId = req.params.userId;
+    
+    if (!userId || userId === 'me') {
+      userId = req.user.id;
+    } else {
+      userId = parseInt(userId);
+    }
 
     const query = `
       SELECT 
@@ -22,10 +28,16 @@ exports.getProfile = async (req, res) => {
         p.full_name as name, p.login_id, p.phone, p.year_of_joining,
         p.department, p.location, p.about_me, p.job_love_description, 
         p.interests_hobbies, p.skills, p.certifications,
+        p.dob, p.residing_address, p.nationality, p.personal_email,
+        p.gender, p.marital_status, p.account_number, p.bank_name,
+        p.ifsc_code, p.pan_no, p.uan_no,
+        p.manager_id, p.job_position, p.date_of_joining,
+        m.full_name as manager_name,
         c.name as company_name, c.logo_url as company_logo
       FROM users u
       JOIN user_profiles p ON u.id = p.user_id
       JOIN companies c ON p.company_id = c.id
+      LEFT JOIN user_profiles m ON p.manager_id = m.user_id
       WHERE u.id = $1
     `;
     const result = await pool.query(query, [userId]);
@@ -44,14 +56,21 @@ exports.getProfile = async (req, res) => {
 // Update Profile
 exports.updateProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
+    let targetUserId = req.user.id;
+
+    // If Admin/HR is updating someone else
+    if ((req.user.role === 'Admin' || req.user.role === 'HR Officer') && req.body.userId) {
+      targetUserId = req.body.userId;
+    }
+
     const { 
       department, location, about_me, 
       job_love_description, interests_hobbies, 
       skills, certifications,
       dob, residing_address, nationality, personal_email,
       gender, marital_status, account_number, bank_name,
-      ifsc_code, pan_no, uan_no
+      ifsc_code, pan_no, uan_no,
+      manager_id, job_position, date_of_joining
     } = req.body;
 
     const query = `
@@ -74,7 +93,10 @@ exports.updateProfile = async (req, res) => {
         bank_name = COALESCE($16, bank_name),
         ifsc_code = COALESCE($17, ifsc_code),
         pan_no = COALESCE($18, pan_no),
-        uan_no = COALESCE($19, uan_no)
+        uan_no = COALESCE($19, uan_no),
+        manager_id = COALESCE($20, manager_id),
+        job_position = COALESCE($21, job_position),
+        date_of_joining = COALESCE($22, date_of_joining)
       WHERE user_id = $8
       RETURNING *
     `;
@@ -84,10 +106,11 @@ exports.updateProfile = async (req, res) => {
       job_love_description, interests_hobbies, 
       skills ? JSON.stringify(skills) : null, 
       certifications ? JSON.stringify(certifications) : null, 
-      userId,
+      targetUserId,
       dob, residing_address, nationality, personal_email,
       gender, marital_status, account_number, bank_name,
-      ifsc_code, pan_no, uan_no
+      ifsc_code, pan_no, uan_no,
+      manager_id, job_position, date_of_joining
     ]);
 
     res.json({ message: 'Profile updated successfully', profile: result.rows[0] });

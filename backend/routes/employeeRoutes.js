@@ -16,7 +16,7 @@ const { protect, adminOnly, managementOnly } = require('../middleware/authMiddle
 const { requireCheckIn } = require('../middleware/attendanceMiddleware');
 
 router.route('/')
-  .get(protect, managementOnly, requireCheckIn, getEmployees)
+  .get(protect, managementOnly, getEmployees)
   .post(protect, managementOnly, requireCheckIn, addEmployee); // HR also needs to add
 
 module.exports = router;

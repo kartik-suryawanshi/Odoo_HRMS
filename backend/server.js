@@ -22,6 +22,7 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const salaryRoutes = require('./routes/salaryRoutes');
 const leaveRoutes = require('./routes/leaveRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,6 +42,7 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/salary', salaryRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Base route for health check
 app.get('/', (req, res) => {

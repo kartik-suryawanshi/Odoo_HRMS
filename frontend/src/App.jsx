@@ -19,7 +19,16 @@ import ChangePassword from './pages/ChangePassword';
 import Profile from './pages/Profile';
 import PayrollDashboard from './pages/PayrollDashboard';
 import SalaryTemplates from './pages/SalaryTemplates';
+import Grades from './pages/Grades';
+import Attendance from './pages/Attendance';
+import TimeOff from './pages/TimeOff';
+import PayrollOverview from './pages/PayrollOverview';
+import Settings from './pages/Settings';
+import PayslipDetail from './pages/PayslipDetail';
+import Reports from './pages/Reports';
 import './index.css';
+
+import Layout from './components/Layout';
 
 function App() {
   return (
@@ -30,12 +39,24 @@ function App() {
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<SignIn />} />
           <Route path="/register" element={<SignUp />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Authenticated Routes wrapped in Layout */}
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/employee/:id" element={<Profile />} />
+            <Route path="/payroll" element={<PayrollOverview />} />
+            <Route path="/employees" element={<PayrollDashboard />} />
+            <Route path="/salary-templates" element={<SalaryTemplates />} />
+            <Route path="/grades" element={<Grades />} />
+            <Route path="/attendance" element={<Attendance />} />
+            <Route path="/time-off" element={<TimeOff />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/payslip/:id" element={<PayslipDetail />} />
+          </Route>
+
           <Route path="/change-password" element={<ChangePassword />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/employee/:id" element={<Profile />} />
-          <Route path="/payroll" element={<PayrollDashboard />} />
-          <Route path="/salary-templates" element={<SalaryTemplates />} />
         </Routes>
       </div>
     </Router>
