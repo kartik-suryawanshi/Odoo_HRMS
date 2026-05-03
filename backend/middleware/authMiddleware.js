@@ -40,30 +40,47 @@ const protect = async (req, res, next) => {
   }
 };
 
+// Strict role checks
 const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'Admin') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Not authorized as an Admin' });
-  }
+  if (req.user && req.user.role === 'Admin') next();
+  else res.status(403).json({ message: 'Admin access required' });
 };
 
-const managementOnly = (req, res, next) => {
-  const allowed = ['Admin', 'HR Officer', 'Payroll Officer'];
-  if (req.user && allowed.includes(req.user.role)) {
-    next();
-  } else {
-    res.status(403).json({ message: 'Management access required' });
-  }
+const hrOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'HR Officer') next();
+  else res.status(403).json({ message: 'HR Officer access required' });
 };
 
+const payrollOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'Payroll Officer') next();
+  else res.status(403).json({ message: 'Payroll Officer access required' });
+};
+
+// Access for HR tasks (Profile, Attendance, Leave)
+const hrAndAdmin = (req, res, next) => {
+  const allowed = ['Admin', 'HR Officer'];
+  if (req.user && allowed.includes(req.user.role)) next();
+  else res.status(403).json({ message: 'HR or Admin access required' });
+};
+
+// Access for Payroll tasks
 const payrollAccess = (req, res, next) => {
   const allowed = ['Admin', 'Payroll Officer'];
-  if (req.user && allowed.includes(req.user.role)) {
-    next();
-  } else {
-    res.status(403).json({ message: 'Payroll access required' });
-  }
+  if (req.user && allowed.includes(req.user.role)) next();
+  else res.status(403).json({ message: 'Payroll or Admin access required' });
 };
 
-module.exports = { protect, adminOnly, managementOnly, payrollAccess };
+// Management access excluding Employee
+const managementOnly = (req, res, next) => {
+  const allowed = ['Admin', 'HR Officer', 'Payroll Officer'];
+  if (req.user && allowed.includes(req.user.role)) next();
+  else res.status(403).json({ message: 'Management access required' });
+};
+
+// Check if user is NOT a Payroll Officer (for Attendance/Leave)
+const noPayroll = (req, res, next) => {
+  if (req.user && req.user.role !== 'Payroll Officer') next();
+  else res.status(403).json({ message: 'Payroll Officers cannot access this feature' });
+};
+
+module.exports = { protect, adminOnly, hrOnly, payrollOnly, hrAndAdmin, payrollAccess, managementOnly, noPayroll };

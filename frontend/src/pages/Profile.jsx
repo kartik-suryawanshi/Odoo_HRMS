@@ -196,7 +196,7 @@ const Profile = () => {
       </div>
 
       <div className="profile-tabs">
-        {['Resume', 'Private Info', 'Attendance', 'Salary Info', 'Security'].map(tab => (
+        {['Private Info', 'Attendance', 'Salary Info', 'Security'].map(tab => (
           <div key={tab} className={`profile-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</div>
         ))}
       </div>
@@ -311,7 +311,6 @@ const Profile = () => {
           </div>
         )}
 
-        {activeTab === 'Resume' && <div className="empty-state"><h3>My Resume</h3><button className="btn">Upload Resume</button></div>}
         {activeTab === 'Security' && <div className="empty-state"><h3>Security Settings</h3><button className="btn" onClick={() => navigate('/change-password')}>Change Password</button></div>}
       </div>
     </div>

@@ -16,15 +16,15 @@ exports.checkIn = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Check if there is already an active check-in for today without a check-out
+    // Check if there is already an active check-in (ANY date)
     const checkQuery = `
       SELECT id FROM attendance_logs 
-      WHERE user_id = $1 AND check_out_time IS NULL AND DATE(check_in_time) = CURRENT_DATE
+      WHERE user_id = $1 AND check_out_time IS NULL
     `;
     const existing = await pool.query(checkQuery, [userId]);
 
     if (existing.rows.length > 0) {
-      return res.status(400).json({ message: 'Already checked in today without checking out' });
+      return res.status(400).json({ message: 'You have an active session. Please check out first.' });
     }
 
     // Insert new log using system timestamp
@@ -60,16 +60,21 @@ exports.checkOut = async (req, res) => {
 
     const logId = activeLog.rows[0].id;
 
-    // Update with check out time and calculate total hours
+    // 1. Get the final heartbeat count to ensure total_hours is accurate
+    const countRes = await pool.query('SELECT COUNT(*) FROM attendance_heartbeats WHERE log_id = $1', [logId]);
+    const heartbeatCount = parseInt(countRes.rows[0].count);
+    const totalHours = (heartbeatCount * 5) / 60;
+
+    // 2. Update with check out time and final verified hours
     const updateQuery = `
       UPDATE attendance_logs 
       SET 
         check_out_time = CURRENT_TIMESTAMP,
-        total_hours = EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - check_in_time)) / 3600
-      WHERE id = $1
+        total_hours = $1
+      WHERE id = $2
       RETURNING *
     `;
-    const updatedLog = await pool.query(updateQuery, [logId]);
+    const updatedLog = await pool.query(updateQuery, [totalHours, logId]);
 
     res.json({ message: 'Checked out successfully', log: updatedLog.rows[0] });
   } catch (error) {
@@ -114,24 +119,35 @@ exports.getUserLogs = async (req, res) => {
 exports.getCurrentStatus = async (req, res) => {
   try {
     const userId = req.user.id;
-    const query = `
+
+    // 1. First, check if there is an active session (ANY date)
+    const activeQuery = `
+      SELECT id, check_in_time, check_out_time 
+      FROM attendance_logs 
+      WHERE user_id = $1 AND check_out_time IS NULL
+      ORDER BY check_in_time DESC LIMIT 1
+    `;
+    const activeStatus = await pool.query(activeQuery, [userId]);
+
+    if (activeStatus.rows.length > 0) {
+      return res.json({ status: 'checked_in', log: activeStatus.rows[0] });
+    }
+
+    // 2. Otherwise, check for the latest completed session today
+    const todayQuery = `
       SELECT id, check_in_time, check_out_time 
       FROM attendance_logs 
       WHERE user_id = $1 AND DATE(check_in_time) = CURRENT_DATE
       ORDER BY check_in_time DESC LIMIT 1
     `;
-    const status = await pool.query(query, [userId]);
+    const todayStatus = await pool.query(todayQuery, [userId]);
 
-    if (status.rows.length === 0) {
+    if (todayStatus.rows.length === 0) {
       return res.json({ status: 'absent' });
     }
 
-    const log = status.rows[0];
-    if (log.check_out_time) {
-      return res.json({ status: 'checked_out', log });
-    } else {
-      return res.json({ status: 'checked_in', log });
-    }
+    const log = todayStatus.rows[0];
+    return res.json({ status: 'checked_out', log });
   } catch (error) {
     console.error('Get Current Status Error:', error);
     res.status(500).json({ message: 'Server Error getting status' });
@@ -223,5 +239,48 @@ exports.getAttendanceSummary = async (req, res) => {
   } catch (error) {
     console.error('Get Attendance Summary Error:', error);
     res.status(500).json({ message: 'Server Error getting attendance summary' });
+  }
+};
+
+// Pulse Heartbeat (Every 5 minutes from frontend)
+exports.heartbeat = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 1. Find the active check-in for this user
+    const findQuery = `
+      SELECT id FROM attendance_logs 
+      WHERE user_id = $1 AND check_out_time IS NULL AND DATE(check_in_time) = CURRENT_DATE
+      ORDER BY check_in_time DESC LIMIT 1
+    `;
+    const activeLog = await pool.query(findQuery, [userId]);
+
+    if (activeLog.rows.length === 0) {
+      return res.status(400).json({ message: 'No active session. Please check in first.' });
+    }
+
+    const logId = activeLog.rows[0].id;
+
+    // 2. Record the heartbeat
+    await pool.query(
+      'INSERT INTO attendance_heartbeats (user_id, log_id, timestamp) VALUES ($1, $2, CURRENT_TIMESTAMP)',
+      [userId, logId]
+    );
+
+    // 3. Update total_hours based on heartbeat count
+    // Each heartbeat represents a 5-minute interval of active presence
+    const countRes = await pool.query('SELECT COUNT(*) FROM attendance_heartbeats WHERE log_id = $1', [logId]);
+    const heartbeatCount = parseInt(countRes.rows[0].count);
+    const totalHours = (heartbeatCount * 5) / 60; // 5 mins per pulse, converted to hours
+
+    await pool.query(
+      'UPDATE attendance_logs SET total_hours = $1 WHERE id = $2',
+      [totalHours, logId]
+    );
+
+    res.json({ message: 'Pulse recorded', total_hours: totalHours.toFixed(2) });
+  } catch (error) {
+    console.error('Heartbeat Error:', error);
+    res.status(500).json({ message: 'Server Error during pulse' });
   }
 };

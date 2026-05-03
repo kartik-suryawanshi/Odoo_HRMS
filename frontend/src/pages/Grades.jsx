@@ -60,7 +60,7 @@ const Grades = () => {
   return (
     <div className="grades-page">
       <div className="page-header" style={{ marginBottom: '40px' }}>
-        <h2 style={{ margin: 0, fontSize: '1.8rem', color: '#1e293b', fontWeight: '800' }}>Salary Structure Library</h2>
+        <h2 style={{ margin: 0, fontSize: '1.8rem', color: '#1e293b', fontWeight: '800' }}>Grade Library</h2>
         <p style={{ color: '#64748b', marginTop: '8px' }}>Define standardized compensation levels to be assigned to your employees.</p>
         <button className="btn" style={{ marginTop: '20px' }} onClick={() => setEditingGrade({ name: '', description: '', template_id: '' })}>
           + Add New Salary Grade

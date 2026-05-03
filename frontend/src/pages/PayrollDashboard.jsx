@@ -9,10 +9,16 @@ const PayrollDashboard = () => {
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  const filteredEmployees = employees.filter(emp => 
+    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.role.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const fetchData = async () => {
     try {
@@ -66,9 +72,18 @@ const PayrollDashboard = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div>
           <h2 style={{ margin: 0 }}>Employee Management Hub</h2>
-          <p style={{ color: '#64748b', marginTop: '5px' }}>Manage salary grades and wages for all personnel.</p>
+          <p style={{ color: '#64748b', marginTop: '5px' }}>Manage salary grades and wages for all personnel ({employees.length} total).</p>
         </div>
-        <button className="btn" onClick={() => navigate('/grades')}>Grade Library →</button>
+        <div style={{ display: 'flex', gap: '15px' }}>
+          <input 
+            type="text" 
+            placeholder="Search name or role..." 
+            className="search-input-premium"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <button className="btn" onClick={() => navigate('/grades')}>Grade Library →</button>
+        </div>
       </div>
 
       <div className="payroll-table-container">
@@ -83,7 +98,7 @@ const PayrollDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {employees.map((emp) => (
+            {filteredEmployees.map((emp) => (
               <tr key={emp.user_id}>
                 <td>
                   <div className="emp-name-cell">

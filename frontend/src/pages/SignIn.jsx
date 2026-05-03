@@ -54,19 +54,6 @@ const SignIn = () => {
 
   return (
     <div className="auth-card">
-      <div className="logo-placeholder" style={{ backgroundColor: localStorage.getItem('user') ? 'transparent' : '#e9ecef', padding: localStorage.getItem('user') ? '0 0 20px 0' : '15px' }}>
-        {localStorage.getItem('user') ? (
-          <img 
-            src={JSON.parse(localStorage.getItem('user')).logoUrl || ''} 
-            alt="Company Logo" 
-            style={{maxHeight: '120px', width: 'auto', display: 'block', margin: '0 auto'}}
-            onError={(e) => {e.target.style.display='none'; e.target.nextSibling.style.display='block';}}
-          />
-        ) : (
-          <span>App/Web Logo</span>
-        )}
-      </div>
-
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>Login Id/Email :-</label>

@@ -17,8 +17,9 @@ exports.getSalaryInfo = async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Permission check
-    if (req.user.role !== 'Admin' && req.user.role !== 'Payroll Officer' && req.user.id !== parseInt(userId)) {
+    // Permission check (Admin, HR, Payroll, or Self)
+    const allowedRoles = ['Admin', 'HR Officer', 'Payroll Officer'];
+    if (!allowedRoles.includes(req.user.role) && req.user.id !== parseInt(userId)) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -169,7 +170,9 @@ exports.getSalaryStatement = async (req, res) => {
     const { userId } = req.params;
     const { year } = req.query;
 
-    if (req.user.role !== 'Admin' && req.user.role !== 'Payroll Officer' && req.user.id !== parseInt(userId)) {
+    // Permission check (Admin, HR, Payroll, or Self)
+    const allowedRoles = ['Admin', 'HR Officer', 'Payroll Officer'];
+    if (!allowedRoles.includes(req.user.role) && req.user.id !== parseInt(userId)) {
       return res.status(403).json({ message: 'Access denied' });
     }
 

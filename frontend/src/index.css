@@ -1181,3 +1181,19 @@ body {
 .allocation-section {
   animation: fadeIn 0.4s ease-out;
 }
+
+.search-input-premium {
+  padding: 10px 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 250px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.search-input-premium:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+  width: 320px;
+}

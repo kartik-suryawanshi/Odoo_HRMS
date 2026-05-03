@@ -22,6 +22,30 @@ const Layout = () => {
     fetchCurrentStatus();
   }, []);
 
+  useEffect(() => {
+    let interval;
+    if (checkedIn && profile?.role !== 'Payroll Officer') {
+      // Send first heartbeat immediately on detection
+      sendHeartbeat();
+      
+      // Then every 5 minutes
+      interval = setInterval(sendHeartbeat, 5 * 60 * 1000);
+    }
+    return () => clearInterval(interval);
+  }, [checkedIn, profile]);
+
+  const sendHeartbeat = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:5000/api/attendance/pulse', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('Active session pulse sent');
+    } catch (err) {
+      console.error('Pulse failed', err.response?.data?.message);
+    }
+  };
+
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -52,7 +76,9 @@ const Layout = () => {
     }
   };
 
+
   const handleCheckIn = async () => {
+    debugger;
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post('http://localhost:5000/api/attendance/check-in', {}, {
@@ -80,37 +106,70 @@ const Layout = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    toast.success('Logged out');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      // Automatically check out if the user is currently checked in
+      if (checkedIn) {
+        const token = localStorage.getItem('token');
+        await axios.post('http://localhost:5000/api/attendance/check-out', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log('Automatic checkout performed on logout.');
+      }
+    } catch (err) {
+      console.warn('Auto-checkout failed during logout', err);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      toast.success('Logged out');
+      navigate('/login');
+    }
   };
 
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard' },
-    { name: 'Time Off', path: '/time-off' },
-    { name: 'My Profile', path: '/profile' },
   ];
 
-  if (profile?.role === 'Admin' || profile?.role === 'HR Officer' || profile?.role === 'Payroll Officer') {
-    menuItems.splice(1, 0, { name: 'Employees', path: '/employees' }); 
-    menuItems.splice(2, 0, { name: 'Attendance', path: '/attendance' }); 
+  const role = profile?.role;
+
+  // Employees: HR, Admin
+  if (role === 'Admin' || role === 'HR Officer') {
+    menuItems.push({ name: 'Employees', path: '/employees' });
   }
 
-  if (profile?.role === 'Admin' || profile?.role === 'Payroll Officer') {
-    menuItems.splice(3, 0, { name: 'Payroll', path: '/payroll' });
+  // Attendance: HR, Admin, Employee (No Payroll)
+  if (role !== 'Payroll Officer') {
+    menuItems.push({ name: 'Attendance', path: '/attendance' });
   }
 
-  if (profile?.role === 'Admin') {
+  // Time Off: HR, Admin, Employee (No Payroll)
+  if (role !== 'Payroll Officer') {
+    menuItems.push({ name: 'Time Off', path: '/time-off' });
+  }
+
+  // Payroll: Admin, Payroll (No HR)
+  if (role === 'Admin' || role === 'Payroll Officer') {
+    menuItems.push({ name: 'Payroll', path: '/payroll' });
+    menuItems.push({ name: 'Salary Templates', path: '/salary-templates' });
+    menuItems.push({ name: 'Grades', path: '/grades' });
+  }
+
+  // Reports: HR, Admin, Payroll
+  if (role === 'Admin' || role === 'HR Officer' || role === 'Payroll Officer') {
     menuItems.push({ name: 'Reports', path: '/reports' });
+  }
+
+  menuItems.push({ name: 'My Profile', path: '/profile' });
+
+  // Settings: Admin Only
+  if (role === 'Admin') {
     menuItems.push({ name: 'Settings', path: '/settings' });
   }
 
   return (
     <div className="dashboard-layout">
       <div className="sidebar no-print">
-        <div className="sidebar-logo" onClick={() => navigate('/dashboard')} style={{cursor: 'pointer'}}>
+        <div className="sidebar-logo" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
           {profile?.company_logo ? (
             <img src={`http://localhost:5000${profile.company_logo}`} alt="Logo" />
           ) : (
@@ -120,8 +179,8 @@ const Layout = () => {
         </div>
         <div className="sidebar-nav">
           {menuItems.map(item => (
-            <div 
-              key={item.path} 
+            <div
+              key={item.path}
               className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
               onClick={() => navigate(item.path)}
             >
@@ -134,29 +193,29 @@ const Layout = () => {
       <div className="main-area">
         <div className="top-header no-print">
           <div className="header-left">
-             <h2 style={{ fontSize: '1.2rem', color: '#333', margin: 0 }}>
-                {menuItems.find(i => i.path === (location.pathname.startsWith('/employee') ? '/dashboard' : location.pathname))?.name || 'Management'}
-             </h2>
+            <h2 style={{ fontSize: '1.2rem', color: '#333', margin: 0 }}>
+              {menuItems.find(i => i.path === (location.pathname.startsWith('/employee') ? '/dashboard' : location.pathname))?.name || 'Management'}
+            </h2>
           </div>
-          
+
           <div className="header-right">
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <span 
-                className={`status-indicator ${checkedIn ? 'status-green' : 'status-red'}`} 
+              <span
+                className={`status-indicator ${checkedIn ? 'status-green' : 'status-red'}`}
                 style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
                 onClick={() => { setShowStatusDropdown(!showStatusDropdown); setShowProfileDropdown(false); }}
               ></span>
-              
+
               {showStatusDropdown && (
                 <div className="profile-dropdown" style={{ top: '35px', right: '-10px', width: '220px' }}>
                   <div className="systray" style={{ padding: '15px' }}>
-                    <button className="btn-outline" onClick={() => { handleCheckIn(); setShowStatusDropdown(false); }} disabled={checkedIn} style={{width: '100%', marginBottom: '10px'}}>
+                    <button className="btn-outline" onClick={() => { handleCheckIn(); setShowStatusDropdown(false); }} disabled={checkedIn} style={{ width: '100%', marginBottom: '10px' }}>
                       Check IN →
                     </button>
                     <p style={{ fontSize: '0.75rem', color: '#666', textAlign: 'center', margin: '5px 0' }}>
-                      {checkedIn && checkedInTime ? `Since ${new Date(checkedInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'Not checked in'}
+                      {checkedIn && checkedInTime ? `Since ${new Date(checkedInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Not checked in'}
                     </p>
-                    <button className="btn-outline" onClick={() => { handleCheckOut(); setShowStatusDropdown(false); }} disabled={!checkedIn} style={{width: '100%'}}>
+                    <button className="btn-outline" onClick={() => { handleCheckOut(); setShowStatusDropdown(false); }} disabled={!checkedIn} style={{ width: '100%' }}>
                       Check Out →
                     </button>
                   </div>
@@ -165,8 +224,8 @@ const Layout = () => {
             </div>
 
             <div style={{ position: 'relative', marginLeft: '15px' }}>
-              <div 
-                className="profile-avatar" 
+              <div
+                className="profile-avatar"
                 onClick={() => { setShowProfileDropdown(!showProfileDropdown); setShowStatusDropdown(false); }}
               >
                 {profile?.name?.charAt(0).toUpperCase()}

@@ -81,7 +81,7 @@ const SalaryTemplates = () => {
       {!showEditor ? (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-            <h3 style={{ margin: 0 }}>Salary Templates Library</h3>
+            <h2 style={{ margin: 0, fontSize: '1.8rem', color: '#1e293b', fontWeight: '800' }}>Salary Template Library</h2>
             <button className="btn" onClick={() => {
                setCurrentTemplate({ name: '', components: currentTemplate.components }); // Reset name but keep structure
                setShowEditor(true);

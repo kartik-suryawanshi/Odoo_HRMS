@@ -1,0 +1,202 @@
+
+<style>
+  .wrap { padding: 1rem 0; font-family: var(--font-sans); }
+  h2 { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; }
+  .sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { font-weight: 500; font-size: 12px; color: var(--color-text-secondary); text-align: center; padding: 8px 6px; border-bottom: 1px solid var(--color-border-tertiary); }
+  thead th.page-col { text-align: left; min-width: 160px; }
+  tbody tr:hover { background: var(--color-background-secondary); }
+  tbody td { padding: 7px 6px; border-bottom: 1px solid var(--color-border-tertiary); vertical-align: middle; }
+  td.page-col { font-size: 13px; color: var(--color-text-primary); font-weight: 400; }
+  td.sect { font-size: 11px; color: var(--color-text-tertiary); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; padding-top: 14px; padding-bottom: 4px; background: var(--color-background-tertiary); }
+  td.check { text-align: center; }
+  .yes  { display:inline-block; width:18px;height:18px;border-radius:50%;line-height:18px;font-size:12px;background:#1D9E75;color:#E1F5EE;font-weight:500; }
+  .no   { display:inline-block; width:18px;height:18px;border-radius:50%;line-height:18px;font-size:12px;background:var(--color-background-secondary);color:var(--color-text-tertiary);border:1px solid var(--color-border-tertiary); }
+  .part { display:inline-block; width:18px;height:18px;border-radius:50%;line-height:18px;font-size:12px;background:#FAC775;color:#633806;font-weight:500; }
+  .legend { display:flex; gap:16px; margin-top:14px; flex-wrap:wrap; }
+  .leg-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--color-text-secondary); }
+  .role-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:500; }
+  .emp  { background:#E1F5EE; color:#0F6E56; }
+  .hr   { background:#E6F1FB; color:#185FA5; }
+  .adm  { background:#EEEDFE; color:#3C3489; }
+  .pay  { background:#FAEEDA; color:#854F0B; }
+</style>
+<div class="wrap">
+  <h2>Role-based page access</h2>
+  <p class="sub">Human Resource Management System — which users can access which pages</p>
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <span class="role-badge emp">Employee</span>
+    <span class="role-badge hr">HR Officer</span>
+    <span class="role-badge adm">Admin</span>
+    <span class="role-badge pay">Payroll Officer</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th class="page-col">Page / Feature</th>
+        <th><span class="role-badge emp">Emp</span></th>
+        <th><span class="role-badge hr">HR</span></th>
+        <th><span class="role-badge adm">Admin</span></th>
+        <th><span class="role-badge pay">Payroll</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Auth -->
+      <tr><td class="sect" colspan="5">Authentication</td></tr>
+      <tr>
+        <td class="page-col">Login / Sign in</td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+      </tr>
+
+      <!-- Profile -->
+      <tr><td class="sect" colspan="5">Profile</td></tr>
+      <tr>
+        <td class="page-col">My Profile (view own)</td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">View other employees' profiles</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">Edit / manage employee profiles</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+
+      <!-- Attendance -->
+      <tr><td class="sect" colspan="5">Attendance</td></tr>
+      <tr>
+        <td class="page-col">View own attendance</td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">View all employees' attendance</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">Edit / manage attendance records</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+
+      <!-- Time Off / Leave -->
+      <tr><td class="sect" colspan="5">Time Off / Leave</td></tr>
+      <tr>
+        <td class="page-col">Apply for time off (own)</td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">View own leave balance & status</td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">Review &amp; approve/reject time off</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">View all employees' leave</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+
+      <!-- Payroll -->
+      <tr><td class="sect" colspan="5">Payroll</td></tr>
+      <tr>
+        <td class="page-col">View own payslip / salary slip</td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">Generate payroll (all employees)</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="part">○</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">View all employees' payroll</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="part">○</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">Export / download payslip PDF</td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">Configure salary / deductions</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+      </tr>
+
+      <!-- Reports -->
+      <tr><td class="sect" colspan="5">Reports &amp; Settings</td></tr>
+      <tr>
+        <td class="page-col">View reports (attendance, leave)</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="part">○</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">System settings &amp; configuration</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+      <tr>
+        <td class="page-col">Manage user roles &amp; permissions</td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="no">–</span></td>
+        <td class="check"><span class="yes">✓</span></td>
+        <td class="check"><span class="no">–</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="legend">
+    <div class="leg-item"><span class="yes">✓</span> Full access</div>
+    <div class="leg-item"><span class="part">○</span> Limited / view-only</div>
+    <div class="leg-item"><span class="no">–</span> No access</div>
+  </div>
+</div>

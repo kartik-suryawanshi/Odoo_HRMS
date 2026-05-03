@@ -12,11 +12,11 @@
 const express = require('express');
 const router = express.Router();
 const { getEmployees, addEmployee } = require('../controllers/employeeController');
-const { protect, adminOnly, managementOnly } = require('../middleware/authMiddleware');
+const { protect, adminOnly, hrAndAdmin } = require('../middleware/authMiddleware');
 const { requireCheckIn } = require('../middleware/attendanceMiddleware');
 
 router.route('/')
-  .get(protect, managementOnly, getEmployees)
-  .post(protect, managementOnly, requireCheckIn, addEmployee); // HR also needs to add
+  .get(protect, hrAndAdmin, getEmployees)
+  .post(protect, hrAndAdmin, requireCheckIn, addEmployee); // HR also needs to add
 
 module.exports = router;

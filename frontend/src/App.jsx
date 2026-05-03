@@ -39,7 +39,7 @@ function App() {
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<SignIn />} />
           <Route path="/register" element={<SignUp />} />
-          
+
           {/* Authenticated Routes wrapped in Layout */}
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
